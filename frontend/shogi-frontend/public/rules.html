@@ -4,35 +4,203 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v6" />
-  <title>ルール | 将棋センター365</title>
+  <title>当サイトについて・ルール | 将棋センター365</title>
+
+  <style>
+    /* ページ固有の軽い整形（site.cssの雰囲気に寄せる） */
+    body.shogi-static-body .shogi-static .callout{
+      border-left: 4px solid var(--accent);
+      background: rgba(255,255,255,.70);
+      border: 1px solid var(--paper-line);
+      border-left-width: 4px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin: 12px 0 14px;
+    }
+    body.shogi-static-body .shogi-static .callout strong{ display:block; }
+    body.shogi-static-body .shogi-static .callout .muted{ margin-top: 6px; }
+
+    body.shogi-static-body .shogi-static .toc{
+      background: rgba(255,255,255,.65);
+      border: 1px solid var(--paper-line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.06);
+      margin: 10px 0 18px;
+    }
+    body.shogi-static-body .shogi-static .toc .toc-title{
+      font-weight: 900;
+      margin: 0 0 8px;
+    }
+    body.shogi-static-body .shogi-static .toc ul{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    body.shogi-static-body .shogi-static .toc a{
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 9999px;
+      border: 1px solid var(--paper-line);
+      background: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-weight: 900;
+      color: #000;
+    }
+    body.shogi-static-body .shogi-static .toc a:hover,
+    body.shogi-static-body .shogi-static .toc a:focus{
+      text-decoration: underline;
+      outline: none;
+    }
+
+    body.shogi-static-body .shogi-static .section-title{
+      margin: 22px 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--paper-line);
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--ink);
+    }
+    body.shogi-static-body .shogi-static .subhead{
+      margin: 14px 0 6px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    body.shogi-static-body .shogi-static .pill-row{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    body.shogi-static-body .shogi-static a.pill-btn{
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 9999px;
+      border: 1px solid var(--paper-line);
+      background: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-weight: 900;
+      color: #000;
+    }
+    body.shogi-static-body .shogi-static a.pill-btn:hover,
+    body.shogi-static-body .shogi-static a.pill-btn:focus{
+      text-decoration: underline;
+      outline: none;
+    }
+  </style>
 </head>
 <body class="shogi-static-body">
   <div class="shogi-static">
     <div id="staticHeader"></div>
 
     <main>
-
       <section class="page-hero">
         <div class="container">
           <div class="paper-pane page-pane">
             <header class="page-head">
-              <h1 class="page-title">ルール</h1>
-              <p class="page-desc">ここは仮ページだよ。あとで正式版の文章に入れ替えてね。</p>
+              <h1 class="page-title">当サイトについて・ルール</h1>
+              <p class="page-desc">当サイトの目的と運用方針、利用時のルールをまとめています。</p>
             </header>
 
             <div class="page-body">
-              <h2>基本</h2>
-              <ul class="plain-list">
-                <li>先手・後手を決めて交互に指すこと。</li>
-                <li>持ち駒は盤上に打てること。</li>
-                <li>相手の玉を詰ませたら勝ち。</li>
-              </ul>
-              <p class="muted">※ 文章・図解はダミーです。必要に応じてセクションを増やしてね。</p>
+              <div class="callout" role="note" aria-label="重要な注意">
+                <strong>大事なこと</strong>
+                <div class="muted">
+                  当サイトは学習・交流のための非営利サービスです。運営は最善を尽くしますが、
+                  ご利用により発生した不利益（対局結果、通信障害、データ消失など）について、当サイトは責任を負いません。
+                </div>
+              </div>
+
+              <nav class="toc" aria-label="目次">
+                <div class="toc-title">目次</div>
+                <ul>
+                  <li><a href="#about">当サイトについて</a></li>
+                  <li><a href="#rules">ルールについて</a></li>
+                  <li><a href="#notes">補足</a></li>
+                </ul>
+              </nav>
+
+              <section id="about" aria-label="当サイトについて">
+                <h2 class="section-title">当サイトについて</h2>
+                <p>
+                  将棋倶楽部24 の閉鎖に伴い、将棋の勉強・検討・指導対局などを行うための場として、学習目的で作成しました。
+                  ルールや運用の考え方は、同サイトの文化・慣習を参考にしています。
+                </p>
+                <ul class="plain-list">
+                  <li>
+                    当サイトは、将棋倶楽部24 の<strong>代替を目的としたサービスではありません</strong>。
+                    一般的な対局目的の方は、より運用が成熟している <strong>81道場</strong> や <strong>lishshogi</strong> の利用を推奨します。
+                  </li>
+                  <li>当サイトは一切の利益目的を持ちません。広告・課金・寄付誘導等も行いません。</li>
+                  <li>
+                    <strong>指導対局</strong> や <strong>小規模の大会</strong>、研究会・サークル活動など、目的が明確な場での利用を推奨します。
+                    （参加者間で事前に取り決めがあると、トラブルが起きにくいです。）
+                  </li>
+                </ul>
+                <div class="pill-row" aria-label="おすすめの対局サービス">
+                  <a class="pill-btn" href="https://81dojo.com/" target="_blank" rel="noopener noreferrer">81道場</a>
+                  <a class="pill-btn" href="https://lishogi.org/" target="_blank" rel="noopener noreferrer">lishshogi</a>
+                </div>
+              </section>
+
+              <section id="rules" aria-label="ルールについて">
+                <h2 class="section-title">ルールについて</h2>
+                <p>
+                  安心して対局できるよう、最低限のルールを定めています。
+                  ここに書いていない細部は、一般的な将棋の取り決めと常識的な範囲での運用に従います。
+                </p>
+
+                <h3 class="subhead">基本</h3>
+                <ul class="plain-list">
+                  <li>将棋のルールは、一般的な将棋のルールに準拠します。</li>
+                  <li>対局の進行や結果に関する行き違いは、まず当事者間で落ち着いて確認してください。</li>
+                </ul>
+
+                <h3 class="subhead">トラブル対応</h3>
+                <ul class="plain-list">
+                  <li>個人間の争いによる不利益について、当サイトは責任を負いません。トラブルは当事者間で解決してください。</li>
+                  <li>個人情報（住所・電話番号・SNSアカウント等）の共有や、それを促す行為は行わないでください。</li>
+                </ul>
+
+                <h3 class="subhead">チャット・コミュニケーション</h3>
+                <ul class="plain-list">
+                  <li>誹謗中傷、脅迫、差別、粘着、誘導、スパム等の悪質なチャットは<strong>即時BAN</strong>の対象です（運営判断）。</li>
+                  <li>対局相手への敬意と配慮は<strong>当然の前提</strong>です。挨拶、言葉遣い、連投の抑制など、互いに不快が残らない振る舞いを徹底してください。</li>
+                </ul>
+
+                <h3 class="subhead">マナー（ルールの範囲内の所作）</h3>
+                <ul class="plain-list">
+                  <li>
+                    時間切れ直前まで指さない、角不成など、ルール内で可能な手でも相手に不快感を与えやすい所作は、
+                    対局相手への配慮として<strong>基本的に避けてください</strong>。
+                    ただし、これらの行為そのものに対する処罰は原則行いません。
+                  </li>
+                </ul>
+              </section>
+
+              <section id="notes" aria-label="補足">
+                <h2 class="section-title">補足</h2>
+                <div class="callout" role="note" aria-label="運営に関する補足">
+                  <strong>運営・データについて</strong>
+                  <div class="muted">
+                    サービス内容・ルール・保存データ（棋譜等）は、運用上の都合で予告なく変更・削除される場合があります。
+                    最新の内容は本ページを優先します。
+                  </div>
+                </div>
+                <ul class="plain-list">
+                  <li>メンテナンス等で一時的に利用できない場合があります。</li>
+                  <li>不正利用や荒らしへの対応のため、運営が必要と判断した場合は予告なく制限（入室不可・BAN等）を行うことがあります。</li>
+                </ul>
+              </section>
             </div>
           </div>
         </div>
       </section>
-
     </main>
 
     <div id="staticFooter"></div>

@@ -77,8 +77,8 @@ function renderHeader() {
             '<button aria-label="メニュー" class="nav-toggle" type="button">☰</button>' +
             '<ul class="nav-list">' +
               '<li><a data-nav href="/">ホーム</a></li>' +
-              '<li><a data-nav href="/rules.html">ルール</a></li>' +
-              '<li><a data-nav href="/distribute.html">配布・ソース</a></li>' +
+              '<li><a data-nav href="/rules.html">当サイトについて・ルール</a></li>' +
+	              '<li><a data-nav href="/distribute.html">ソース(配布)・クレジット</a></li>' +
               '<li><a data-nav href="/contact.html">問い合わせ</a></li>' +
             '</ul>' +
           '</nav>' +
