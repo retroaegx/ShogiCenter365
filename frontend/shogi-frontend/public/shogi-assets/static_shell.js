@@ -78,7 +78,7 @@ function renderHeader() {
             '<ul class="nav-list">' +
               '<li><a data-nav href="/">ホーム</a></li>' +
               '<li><a data-nav href="/rules.html">ルール</a></li>' +
-              '<li><a data-nav href="/ranking.html">ランキング</a></li>' +
+              '<li><a data-nav href="/distribute.html">配布・ソース</a></li>' +
               '<li><a data-nav href="/contact.html">問い合わせ</a></li>' +
             '</ul>' +
           '</nav>' +
