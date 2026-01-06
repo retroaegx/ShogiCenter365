@@ -1,0 +1,5 @@
+# 待機部屋の TTL/索引（main.py 起動時に一度だけ設定）
+# MongoDB 例:
+#   col = db['waiting_rooms']
+#   col.create_index('created_at', expireAfterSeconds=1800)  # 30分で自然消滅
+#   col.create_index([('status', 1), ('created_at', -1)])

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v6" />
+  <title>メール認証 | 将棋センター365</title>
+</head>
+<body class="shogi-static-body">
+  <div class="shogi-static">
+    <div id="staticHeader"></div>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <div class="paper-pane page-pane">
+            <header class="page-head">
+              <h1 class="page-title">メール認証</h1>
+              <p class="page-desc">アカウントのメールアドレス確認をします。</p>
+            </header>
+
+            <div class="page-body">
+              <div class="form-card" style="max-width: 560px;">
+                <p class="muted" id="verifyMsg" aria-live="polite">処理中...</p>
+                <div style="margin-top: 12px; display:flex; gap: 10px; flex-wrap: wrap;">
+                  <a class="primary" href="/">トップへ戻る</a>
+                  <a class="ghost" href="/#account">ログインへ</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="staticFooter"></div>
+  </div>
+
+  <script defer src="/shogi-assets/static_shell.js?v=static-v6"></script>
+
+  <script>
+  const msg = document.getElementById('verifyMsg');
+  function setMsg(text, ok) {
+    if (!msg) return;
+    msg.textContent = text || '';
+    msg.style.color = ok ? '#2f6b2f' : '#b04444';
+  }
+
+  (async () => {
+    const sp = new URLSearchParams(location.search);
+    const token = (sp.get('token') || '').trim();
+    if (!token) {
+      setMsg('token が見つかりませんでした。メールのリンクを開き直してください。', false);
+      return;
+    }
+    try {
+      const res = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data || data.success === false) {
+        const m = (data && (data.message || data.error)) || '認証に失敗しました';
+        setMsg(m, false);
+        return;
+      }
+      setMsg(data.message || 'メール認証が完了しました。', true);
+    } catch (e) {
+      setMsg('認証に失敗しました（通信エラー）', false);
+    }
+  })();
+  </script>
+</body>
+</html>

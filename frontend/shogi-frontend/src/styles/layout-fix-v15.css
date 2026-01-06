@@ -1,0 +1,298 @@
+
+/* layout-fix-v15 (final) */
+html, body, #root { height: 100%; margin: 0; }
+body { overflow: auto !important; overscroll-behavior: none; }
+
+/*
+  Mobile/Tablet の一部ブラウザでは 100vh / 100dvh の扱いが不安定で、
+  初回表示で対局UIの下側が切れることがある。
+
+  基本は CSS の svh/dvh を使いつつ、JS(App.jsx) が実行できる環境では
+  visualViewport/innerHeight から px を計算して --app-height を上書きする。
+*/
+:root { --app-height: 100svh; }
+@supports (height: 100dvh) { :root { --app-height: 100dvh; } }
+
+.app-root {
+  height: var(--app-height);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+}
+
+.site-header, .footer-bar { z-index: 30; }
+
+.site-main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.viewport-shell { flex: 1 1 auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; }
+.main-shell { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; }
+@media (min-width: 640px) {
+  .main-shell {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  /* 対局画面「拡大サイズ」用の横幅 */
+  .main-shell.main-shell-wide {
+    max-width: 80rem; /* 約1280px。必要なら数値を調整 */
+  }
+}
+
+/* ロビー(PC)だけ、ユーザー一覧を少し横に広げる */
+@media (min-width: 1024px) {
+  .main-shell.main-shell-lobby {
+    max-width: 70rem;
+  }
+}
+
+/* 対局画面: 盤の表示サイズに合わせて横幅を切り替える
+   - 通常: 約60%（中央寄せ）
+   - 拡大: 100%
+   ※モバイルは既存の full-bleed（@media max-width:767px）を優先 */
+@media (min-width: 768px) {
+  .app-root.is-game .main-shell {
+    width: 60% !important;
+    max-width: none !important;
+    margin: 0 auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .app-root.is-game .main-shell.main-shell-wide {
+    width: 100% !important;
+  }
+}
+
+/* 対局画面ではフッターを表示しない（縦領域を最大化） */
+.app-root.is-game {
+  grid-template-rows: auto 1fr 0 !important;
+}
+.app-root.is-game .site-footer {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+/* 対局画面の「拡大サイズ」選択時は、盤＋ユーザーパネルが枠いっぱいまで広がるようにする */
+
+.lobby-root { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.lobby-controls { position: sticky; top: 0; z-index: 10; }
+
+.user-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+
+/* modal overlay & body lock */
+.modal-overlay { position: fixed; inset: 0; display: grid; place-items: center;
+  background: rgba(15, 15, 15, 0.35); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  pointer-events: auto; }
+.modal-center { max-width: 28rem; width: calc(100% - 2rem); margin: 0 1rem; }
+body.modal-open { overflow: hidden !important; }
+.site-header, .footer-bar { z-index: 30; } /* overlay is z-50 */
+
+
+/* === mobile game full-bleed adjustments === */
+@media (max-width: 768px) {
+  /* hide footer only on game screen */
+  .app-root.is-game .footer-bar { display: none !important; }
+  /* remove extra paddings in main containers */
+  .app-root.is-game .viewport-shell { padding: 0 !important; }
+  .app-root.is-game .main-shell { padding: 0 !important; }
+  .app-root.is-game .game-mobile-shell { padding: 0 !important; margin: 0 !important; }
+  /* ensure board container can use full width */
+  .app-root.is-game .shogi-merge, 
+  .app-root.is-game .card-like,
+  .app-root.is-game .shogi-board-container { margin: 0 !important; }
+}
+
+
+/* === stronger mobile footer & layout rules for game === */
+@media (max-width: 768px) {
+  .app-root.is-game { grid-template-rows: auto 1fr 0 !important; }
+  .app-root.is-game .footer-bar { display: none !important; height: 0 !important; padding: 0 !important; margin: 0 !important; border: 0 !important; }
+}
+
+
+
+/* footer padding tweak */
+.app-root .site-footer{padding:0 !important;}
+.footer-bar{padding-bottom:env(safe-area-inset-bottom) !important;}
+
+/* === game viewport ===
+   .app-root は header / main(1fr) / footer の3行グリッド。
+   対局画面では footer を CSS で非表示(0行)にしているので、
+   main 行は常に「ヘッダーを除いた残り高さ」になる。
+
+   ここで 100dvh からヘッダー高さを引く計算をすると、
+   初回描画タイミングの CSS 変数未反映・丸め誤差で
+   "下段UIが画面外に押し出される" ことがあるため、
+   高さは親(グリッド/フレックス)に委ねて 100% を使う。
+*/
+.game-viewport{ height: 100%; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+
+/* === kifu search viewport: header+footer を引いた残り ===
+   - ページ全体は 1 画面に収め、検索結果だけを枠内スクロールさせるための高さ固定。
+*/
+.kifu-viewport{ height: calc(var(--app-height) - var(--hdr,56px) - var(--ftr,56px)); min-height:0; }
+@supports not (height: 100dvh) {
+  .kifu-viewport{ height: calc(var(--app-height) - var(--hdr,56px) - var(--ftr,56px)); }
+}
+
+/* game 内の flex 分配が効くように min-height だけ補助 */
+.game-grid{ min-height: 0; }
+.game-top{ min-height: 0; }
+
+/* === PATCH: keep original rules; only add safe scoped layout fixes === */
+
+/* Game viewport: keep consistent with the block above (no vh-calc) */
+.game-viewport{ height: 100%; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+
+/* 盤面(上) 8割 / 下段(チャット+観戦者) 2割
+   親が flex-col なので、子の .game-grid と .game-bottom に flex を付与して比率を決める。
+   (.game-grid の中身レイアウトには影響しない) */
+.game-grid{ flex: 4 1 0%; min-height: 0; }
+.game-bottom{ flex: 1 1 0%; min-height: 0; }
+
+/* 内部グリッドも高さを継承 */
+.game-bottom .grid{ height: 100%; min-height: 0; }
+
+/* スマホ(〜768px)の対局中はフッターを確実に隠す */
+@media (max-width: 768px){
+  .app-root.is-game .site-footer{ display: none !important; }
+}
+
+/* === mobile header compaction & captured-title tweak (ChatGPT v21) === */
+@media (max-width: 768px){
+  /* 名前(R)+手番 と 持ち時間を1行にまとめる */
+  .user-header-block{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:0.25rem;
+  }
+  .user-header-block .user-line1{
+    display:inline-flex;
+    align-items:center;
+    gap:0.25rem !important;
+    margin-right:0.25rem;
+  }
+  .user-header-block .user-line2{
+    display:inline !important;
+    margin-top:0 !important;
+  }
+  .user-times{
+    font-size:0.75rem !important;
+    line-height:1.25rem !important;
+    white-space:nowrap;
+  }
+  /* 「持ち駒」ラベルはスマホでは非表示 */
+  .user-captured-title{
+    display:none !important;
+  }
+  /* 2行目の / などが縦に折れないように */
+  .game-mobile-shell .user-line2 span{
+    display:inline !important;
+  }
+  .game-mobile-shell .user-line2 .mx-1{
+    display:inline !important;
+  }
+
+  /* 盤まわりの余白を詰める */
+  .game-mobile-shell .py-2{
+    padding-top:0 !important;
+    padding-bottom:0 !important;
+  }
+  .game-mobile-shell .sticky.top-0.z-20.mb-2{
+    margin-bottom:0 !important;
+  }
+  .game-mobile-shell .mt-3{
+    margin-top:0 !important;
+  }
+  .game-mobile-shell .space-y-4 > :not([hidden]) ~ :not([hidden]){
+    margin-top:0 !important;
+    margin-bottom:0 !important;
+  }
+}
+
+/* === desktop: center board + side user panels vertically in the top area === */
+@media (min-width: 768px){
+  .game-grid{
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:center !important;
+  }
+}
+
+/* === extra small phones (SE 等) 用の集中モード & さらにコンパクトなヘッダー === */
+@media (max-width: 480px){
+  /* 対局中はサイトヘッダーを非表示にして盤に高さをあげる */
+  .app-root.is-game .site-header{
+    display:none !important;
+  }
+
+  /* 情報バーをさらにコンパクトに */
+  .game-mobile-shell .user-panel{
+    padding:0.25rem 0.5rem !important;
+  }
+  .game-mobile-shell .user-line1 > span{
+    font-size:0.70rem !important;
+  }
+  .game-mobile-shell .user-line2{
+    font-size:0.65rem !important;
+  }
+  .game-mobile-shell .user-line1 .ml-1{
+    margin-left:0.15rem !important;
+  }
+}
+
+/* === v23: extra-small in-game toolbar & menu (right-top) === */
+@media (max-width: 480px){
+  .mini-game-toolbar{
+    position:absolute;
+    top:0.25rem;
+    right:0.25rem;
+    z-index:40;
+    display:flex;
+    gap:0.25rem;
+  }
+  .mini-game-toolbar__btn{
+    padding-inline:0.5rem !important;
+    height:1.75rem !important;
+  }
+  .mini-game-menu{
+    position:absolute;
+    top:2.25rem;
+    right:0.25rem;
+    z-index:40;
+    background:rgba(255,255,255,0.96);
+    border-radius:0.5rem;
+    padding:0.5rem;
+    box-shadow:0 8px 20px rgba(0,0,0,0.18);
+    min-width:9rem;
+  }
+}
+
+
+/* v24: hide in-game mini toolbar/menu by default (enabled only on very small screens) */
+.mini-game-toolbar,
+.mini-game-menu{
+  display:none;
+}
+
+
+/* v24: show mini toolbar/menu only on extra-small screens */
+@media (max-width: 480px){
+  .mini-game-toolbar{
+    display:flex;
+  }
+  .mini-game-menu{
+    display:block;
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "background_sets": [
+    {
+      "name": "wood_3",
+      "displayName": "木目（背景3）",
+      "background": "/board-theme/images/board_background3.png",
+      "coordinates": {
+        "color": "#000000",
+        "position": "outside",
+        "outside": {
+          "background_vertical": "/board-theme/images/board_background.png",
+          "background_horizontal": "/board-theme/images/board_background.png"
+        }
+      },
+      "grid": {
+        "show": false,
+        "color": "#9ca3af"
+      },
+      "board_region": {
+        "start": { "x": 42, "y": 42 },
+        "end": { "x": 1560, "y": 1560 }
+      }
+    },
+    {
+      "name": "classic",
+      "displayName": "クラシック（旧背景）",
+      "background": "/board-theme/images/board_background_old.png",
+      "coordinates": {
+        "color": "#000000",
+        "position": "outside",
+        "outside": {
+          "background_vertical": "/board-theme/images/board_background.png",
+          "background_horizontal": "/board-theme/images/board_background.png"
+        }
+      },
+      "grid": {
+        "show": false,
+        "color": "#9ca3af"
+      },
+      "board_region": {
+        "start": { "x": 42, "y": 42 },
+        "end": { "x": 1560, "y": 1560 }
+      }
+    }
+  ],
+  "piece_sets": [
+    {
+      "name": "standard",
+      "displayName": "標準",
+      "pieces": {
+        "king": "/board-theme/images/king.png",
+        "rook": "/board-theme/images/rook.png",
+        "bishop": "/board-theme/images/bishop.png",
+        "gold": "/board-theme/images/gold.png",
+        "silver": "/board-theme/images/silver.png",
+        "knight": "/board-theme/images/knight.png",
+        "lance": "/board-theme/images/lance.png",
+        "pawn": "/board-theme/images/pawn.png",
+        "dragon": "/board-theme/images/dragon.png",
+        "horse": "/board-theme/images/horse.png",
+        "promoted_silver": "/board-theme/images/promoted_silver.png",
+        "promoted_knight": "/board-theme/images/promoted_knight.png",
+        "promoted_lance": "/board-theme/images/promoted_lance.png",
+        "promoted_pawn": "/board-theme/images/promoted_pawn.png"
+      }
+    },
+    {
+      "name": "standard_2",
+      "displayName": "標準（別セット例）",
+      "pieces": {
+        "king": "/board-theme/images/king.png",
+        "rook": "/board-theme/images/rook.png",
+        "bishop": "/board-theme/images/bishop.png",
+        "gold": "/board-theme/images/gold.png",
+        "silver": "/board-theme/images/silver.png",
+        "knight": "/board-theme/images/knight.png",
+        "lance": "/board-theme/images/lance.png",
+        "pawn": "/board-theme/images/pawn.png",
+        "dragon": "/board-theme/images/dragon.png",
+        "horse": "/board-theme/images/horse.png",
+        "promoted_silver": "/board-theme/images/promoted_silver.png",
+        "promoted_knight": "/board-theme/images/promoted_knight.png",
+        "promoted_lance": "/board-theme/images/promoted_lance.png",
+        "promoted_pawn": "/board-theme/images/promoted_pawn.png"
+      }
+    }
+  ]
+}

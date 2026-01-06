@@ -1,0 +1,61 @@
+--- shogi-complete/frontend/src/components/lobby/LobbyView.jsx (original)
++++ shogi-complete/frontend/src/components/lobby/LobbyView.jsx (patched)
+@@ -276,13 +276,13 @@
+             <div className="flex gap-2">
+               <button className="px-3 py-1 border rounded" onClick={async ()=>{
+                 try {
+-                  await fetch('/api/lobby/offer/accept', {method:'POST', credentials:'include'});
++                  await api.post('/lobby/offer/accept', {}, { withCredentials: true });
+                   await fetchUsers();
+                 } catch(e) { console.error(e); alert('受諾に失敗しました'); }
+               }}>受ける</button>
+               <button className="px-3 py-1 border rounded" onClick={async ()=>{
+                 try {
+-                  await fetch('/api/lobby/offer/decline', {method:'POST', credentials:'include'});
++                  await api.post('/lobby/offer/decline', {}, { withCredentials: true });
+                   await fetchUsers();
+                 } catch(e) { console.error(e); alert('辞退に失敗しました'); }
+               }}>断る</button>
+@@ -292,27 +292,19 @@
+       })() : null}
+ 
+       {/* 申請モーダル */}
++      {/* 申請モーダル（重複なし・これ1つだけ） */}
+       <OfferModal
+         open={!!offerTarget}
+         defaultTime={(offerTarget?.waiting_info?.time_control ? `${offerTarget.waiting_info.time_control}分` : '15分')}
+-        onClose={()=> setOfferTarget(null)}
+-        onSubmit={async (label)=>{
++        onClose={() => setOfferTarget(null)}
++        onSubmit={async (label) => {
+           try {
+             const map = {'早指':1,'早指2':2,'早指3':3,'15分':15,'30分':30};
+             const minutes = map[label] ?? (parseInt(String(label).replace('分','')) || 15);
+-            const res = await fetch('/api/lobby/join-by-user', {
+-              method: 'POST',
+-              headers: {'Content-Type':'application/json'},
+-              credentials:'include',
+-              body: JSON.stringify({
+-                opponent_user_id: offerTarget?._id || offerTarget?.user_id,
+-                time_control: minutes
+-              })
+-            });
+-            if (!res.ok) {
+-              const j = await res.json().catch(()=>null);
+-              throw new Error(j?.error || 'join_failed');
+-            }
++            await api.post('/lobby/join-by-user', {
++              opponent_user_id: idToStr(offerTarget?._id || offerTarget?.user_id),
++              time_minutes: minutes
++            }, { withCredentials: true });
+             setOfferTarget(null);
+             await fetchUsers();
+           } catch (e) {
+@@ -321,7 +313,6 @@
+           }
+         }}
+       />
+-
+ 
+       <WaitConfigModal
+         open={waitOpen}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v6" />
+  <title>お問い合わせ | 将棋センター365</title>
+</head>
+<body class="shogi-static-body">
+  <div class="shogi-static">
+    <div id="staticHeader"></div>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <div class="paper-pane page-pane">
+            <header class="page-head">
+              <h1 class="page-title">お問い合わせ</h1>
+              <p class="page-desc">不具合報告・ご意見・ご要望などを送れます。</p>
+            </header>
+
+            <div class="page-body">
+              <form class="form-card" id="contactForm" onsubmit="return false;">
+                <label>名前
+                  <input name="name" type="text" required placeholder="おなまえ" />
+                </label>
+                <label>問い合わせタイトル
+                  <input name="subject" type="text" required placeholder="件名" />
+                </label>
+                <label>メールアドレス
+                  <input name="email" type="email" required placeholder="you@example.com" />
+                </label>
+                <label>メールアドレス（確認）
+                  <input name="email2" type="email" required placeholder="you@example.com" />
+                </label>
+                <label>問い合わせ内容
+                  <textarea name="body" rows="6" required placeholder="ご用件"></textarea>
+                </label>
+                <button class="primary" id="contactSubmit" type="button">送信</button>
+                <p class="muted" id="contactMsg" aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="staticFooter"></div>
+  </div>
+
+  <script defer src="/shogi-assets/static_shell.js?v=static-v6"></script>
+
+  <script>
+  const btn = document.getElementById('contactSubmit');
+  const form = document.getElementById('contactForm');
+  const msg = document.getElementById('contactMsg');
+
+  function setMsg(text, ok) {
+    if (!msg) return;
+    msg.textContent = text || '';
+    msg.style.color = ok ? '#2f6b2f' : '#b04444';
+  }
+
+  btn?.addEventListener('click', async () => {
+    if (!form) return;
+    const email = (form.email?.value || '').trim();
+    const email2 = (form.email2?.value || '').trim();
+    if (email !== email2) {
+      setMsg('メールアドレスが一致していません。', false);
+      return;
+    }
+    if (!form.reportValidity()) return;
+
+    const payload = {
+      name: (form.name?.value || '').trim(),
+      subject: (form.subject?.value || '').trim(),
+      email,
+      body: (form.body?.value || '').trim(),
+    };
+
+    btn.disabled = true;
+    setMsg('送信中...', true);
+    try {
+      const res = await fetch('/api/public/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data || data.success === false) {
+        const m = (data && (data.message || data.error)) || '送信に失敗しました';
+        setMsg(m, false);
+        return;
+      }
+      setMsg('送信しました。ありがとうございました。', true);
+      form.reset();
+    } catch (e) {
+      setMsg('送信に失敗しました（通信エラー）', false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  </script>
+</body>
+</html>

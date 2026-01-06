@@ -1,0 +1,7 @@
+# === main.py 追記（Mongo接続が完了した直後に入れる）===
+app.db_manager = db_manager
+app.config['DB_MANAGER'] = db_manager
+if hasattr(db_manager, 'db'):
+    app.mongo_db = db_manager.db
+    app.config['MONGO_DB'] = db_manager.db
+# ================================================

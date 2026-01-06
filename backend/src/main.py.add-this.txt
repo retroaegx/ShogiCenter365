@@ -1,0 +1,15 @@
+# --- 追加: GameService をアプリ起動時に依存性注入しておく -----------------------
+from src.services.game_service import GameService  # 既にあれば重複不要
+
+# db_manager を初期化した直後あたりで
+game_service = None
+try:
+    # 通常は db_manager を渡して生成
+    game_service = GameService(db_manager)
+except TypeError:
+    # 引数なしでも動くならこちら
+    game_service = GameService()
+
+# アプリに載せる（どこからでも参照可能）
+app.config['GAME_SERVICE'] = game_service
+# -----------------------------------------------------------------------

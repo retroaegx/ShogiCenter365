@@ -1,0 +1,78 @@
+*** a/backend/src/services/game_service.py
+--- b/backend/src/services/game_service.py
+@@
+ class GameService:
+@@
++    def _archive_doc(self, game_doc: Dict[str, Any]):
++        """Move game doc from 'games' to 'game_archives' atomically as possible.
++        Adds archived_at timestamp. Keeps the same _id for traceability."""
++        if not game_doc:
++            return False
++        game_id = game_doc.get('_id')
++        now = self._now()
++        doc = {**game_doc, 'archived_at': now}
++        try:
++            # Insert copy into archives
++            self.db.game_archives.update_one({'_id': game_id}, {'$set': doc}, upsert=True)
++            # Remove from active games
++            self.db.games.delete_one({'_id': game_id})
++            return True
++        except Exception:
++            # Best-effort: do not delete original if insert failed
++            return False
++
++    def finalize_and_archive(self, game_id: str, winner: Optional[str], reason: Optional[str] = None) -> Dict[str, Any]:
++        """Mark as finished, emit websocket event, then archive."""
++        # Fetch
++        g = self.db.games.find_one({'_id': game_id})
++        if not g:
++            return {'ok': False, 'reason': 'not_found'}
++        # Update fields
++        update = {
++            'status': 'finished',
++            'winner': winner if winner in ('sente','gote') else None,
++            'finished_at': self._now(),
++        }
++        if reason:
++            update['finish_reason'] = reason
++        self.db.games.update_one({'_id': game_id}, {'$set': update})
++        # Reload merged state to emit
++        merged = {**g, **update}
++        try:
++            # notify both players if possible
++            for uid_key in ('sente_user_id', 'gote_user_id'):
++                uid = merged.get(uid_key)
++                if uid:
++                    self.ws.emit_to_user('game_finished', {
++                        'game_id': game_id,
++                        'winner': update['winner'],
++                        'reason': reason or 'finished',
++                    }, str(uid))
++            # also broadcast to game room as a fallback
++            self.ws.broadcast('game_finished', {
++                'game_id': game_id,
++                'winner': update['winner'],
++                'reason': reason or 'finished',
++            })
++        except Exception:
++            pass
++        # Archive
++        self._archive_doc({**g, **update})
++        return {'ok': True, 'game': self.as_api_payload({**g, **update})}
+@@
+-    async def resign_game(self, game_id: str, user_id: str) -> Dict[str, Any]:
+-        """Existing implementation..."""
++    async def resign_game(self, game_id: str, user_id: str) -> Dict[str, Any]:
++        """Player resigns. Determine winner then finalize+archive."""
++        g = self.db.games.find_one({'_id': game_id})
++        if not g:
++            return {'ok': False, 'reason': 'not_found'}
++        # Who resigned -> opposite side wins
++        if str(user_id) == str(g.get('sente_user_id')):
++            winner = 'gote'
++        elif str(user_id) == str(g.get('gote_user_id')):
++            winner = 'sente'
++        else:
++            # Not a participant; keep behavior but don't archive
++            return {'ok': False, 'reason': 'not_participant'}
++        return self.finalize_and_archive(game_id, winner, 'resign')

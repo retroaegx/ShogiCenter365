@@ -1,0 +1,17 @@
+# 環境依存・キャッシュ
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# secrets
+.env
+*.key
+
+# build
+dist/
+build/
+node_modules/
+engine/

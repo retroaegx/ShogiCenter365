@@ -1,0 +1,11 @@
+
+--- a/backend/src/main.py
++++ b/backend/src/main.py
+@@
+-from routes.lobby import lobby_bp
++from routes.lobby import lobby_bp
++from routes.offers_store import offer_bp
+@@
+-    app.register_blueprint(lobby_bp)
++    app.register_blueprint(lobby_bp)
++    app.register_blueprint(offer_bp)  # offers DB 管理API
