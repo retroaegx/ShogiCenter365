@@ -16,6 +16,7 @@ build/
 node_modules/
 engine/
 __pycache__
+frontend/shogi-frontend/src/assets
 
 # bot
 join_computer
