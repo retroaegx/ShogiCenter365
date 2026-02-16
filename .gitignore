@@ -16,8 +16,23 @@ build/
 node_modules/
 engine/
 __pycache__
-frontend/shogi-frontend/src/assets
-frontend\shogi-frontend\public\sounds
+# frontend: assets (kept out of git; keep docs only)
+frontend/shogi-frontend/src/assets/*
+!frontend/shogi-frontend/src/assets/README.md
+
+# frontend: sounds (audio files are kept out of git; keep docs only)
+frontend/shogi-frontend/public/sounds/*.wav
+frontend/shogi-frontend/public/sounds/*.m4a
+!frontend/shogi-frontend/public/sounds/README.md
+!frontend/shogi-frontend/public/sounds/README.txt
+
+# frontend: country flags (kept out of git; keep docs only)
+frontend/shogi-frontend/public/country/*
+!frontend/shogi-frontend/public/country/README.md
+
+# frontend: board theme images (kept out of git; keep docs only)
+frontend/shogi-frontend/public/board-theme/images/*
+!frontend/shogi-frontend/public/board-theme/images/README.md
 # bot
 join_computer
 

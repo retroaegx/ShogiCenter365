@@ -113,6 +113,18 @@ cd ShogiCenter365
 
 フロントは `frontend/shogi-frontend/public/` 配下の静的ファイルを直接参照します。
 
+### 2.0 Git に含めない素材（.gitignore）
+容量やライセンスの都合で、次の素材は **git 管理しません**（`.gitignore` 対象）。
+クローン直後は README だけになるので、起動前に **別途用意して配置**してください。
+
+- `frontend/shogi-frontend/src/assets/`（UI アイコン等。ビルド時 import 用）
+- `frontend/shogi-frontend/public/sounds/`（効果音/環境音。`*.m4a` / `*.wav`）
+- `frontend/shogi-frontend/public/country/`（旗 SVG。`*.svg`）
+- `frontend/shogi-frontend/public/board-theme/images/`（盤面/駒画像）
+
+それぞれのフォルダに README を置いてあります。
+**必要ファイル名・置き方の詳細は各 README が正**です。
+
 ### 2.1 必須になりやすいパス
 最低限、これが無いと見た目や一部 UI が壊れます。
 
@@ -149,11 +161,11 @@ cd frontend/shogi-frontend
 unzip -o public/distribute/board-theme.zip -d public
 ```
 
-`public/board-theme/config.json` が参照している
-- `/board-theme/images/boards/...`
-- `/board-theme/images/pieces/...`
+`public/board-theme/config.json` が参照しているパス（例: `/board-theme/images/...`）が、ZIP 展開で揃っている状態がゴールです。
 
-が、ZIP 展開で揃っている状態がゴールです。
+※ `board-theme.zip` にも `config.json` が入っているので、展開で **`public/board-theme/config.json` が上書き**されます。
+- ZIP の `config.json` と画像をセットで使うなら、そのままで OK
+- 既存の `config.json` を使い続けたい場合は、展開後に `config.json` を戻してください
 
 ---
 
