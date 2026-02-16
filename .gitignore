@@ -17,7 +17,7 @@ node_modules/
 engine/
 __pycache__
 frontend/shogi-frontend/src/assets
-
+frontend\shogi-frontend\public\sounds
 # bot
 join_computer
 
