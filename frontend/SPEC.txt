@@ -1,0 +1,164 @@
+将棋センター365 / frontend 仕様書（詳細）
+
+0. このファイルについて
+- 目的: frontend（ブラウザUI）の「役割」「構成」「バックエンドとの契約」を、実装に沿って整理します。
+- 対象: frontend/shogi-frontend（Vite + React）一式。
+- 注意: この仕様書は“現在の実装”に合わせた説明です。UI要件の理想形ではありません。
+
+1. 位置づけ（システム全体）
+- frontend は、ユーザーが操作する画面（認証/ロビー/対局/棋譜/ブログ閲覧）を提供します。
+- backend が提供する REST API（/api/*）と Socket.IO（WebSocket）を利用して状態を取得/同期します。
+- 本番は backend がビルド済みフロント（dist）を配信する構成が基本です。
+  - backend 側の dist 探索ロジックは backend/src/main.py にあります（SHOGI_FRONT_DIST など）。
+
+2. 実行/ビルド
+2.1 前提
+- Node.js / pnpm（package.json の packageManager を参照）
+- backend が起動していること（API/WS 接続先）
+
+2.2 開発（Vite dev）
+- コマンド（shogi-frontend 配下）
+  - pnpm install
+  - pnpm dev
+- API 接続先の決定（src/services/env.js）
+  - VITE_API_BASE があれば最優先（末尾 / は除去）
+  - window.location.port === 5173 の場合は “同じ host の :5000” を仮定
+  - それ以外は same-origin（本番: backend 配信時に有効）
+- Socket.IO 接続先（複数実装が混在）
+  - src/services/websocketService.js: window.location 由来 + token を付与して接続する実装
+  - src/lib/socket.ts: VITE_BE_ORIGIN を優先し、固定 origin に直接接続する実装（方式A）
+  - 実際にどちらを使うかは各画面の import / window グローバル参照に依存します（後述）。
+
+2.3 本番（ビルド）
+- コマンド（shogi-frontend 配下）
+  - pnpm build
+- 出力: frontend/shogi-frontend/dist
+- backend 側が dist を配信するため、dist の配置と SHOGI_FRONT_DIST の設定が重要です。
+
+3. ディレクトリ構成（主要）
+- frontend/
+  - shogi-frontend/
+    - src/
+      - components/        画面部品（ロビー/対局/棋譜/認証/UI）
+      - contexts/          グローバル状態（Auth/Sound）
+      - services/          API/WS/音/補助
+      - hooks/             カスタムHook
+      - utils/             USI/SFEN/将棋ルール/時間などの純粋ロジック
+      - lib/               Socket.IO 接続モジュール等（補助）
+      - config/            API項目名吸収・テーマ・サウンド等
+    - public/              静的アセット
+    - dist/                ビルド成果物（本番配信対象）
+  - SPEC.txt               この仕様書
+
+4. 主要コンポーネントと画面
+4.1 画面（概略）
+- 認証: components/auth/*
+  - タブ型UI、ゲストログイン、Googleログイン導線、プロフィール補完フォーム等
+- ロビー: components/lobby/*
+  - オンライン一覧、待ち状態の切替、対局申込/オファー、招待リンク、設定モーダル等
+- 対局: components/game/*
+  - 盤面（ShogiBoard）、対局画面（GameView）、結果ダイアログ、タイマー表示など
+- 棋譜: components/kifu/*
+  - /api/kifu/search を用いた棋譜検索・閲覧
+- トップ/ホーム: components/top/*, components/home/*
+
+4.2 UI基盤
+- Tailwind + shadcn/ui（components/ui/*）を利用
+- レイアウト/モーダルは Radix 系コンポーネントが多い
+
+5. 状態管理（フロント側の“どこに何があるか”）
+5.1 認証状態（contexts/AuthContext.jsx）
+- 役割
+  - トークン/ユーザー情報の保持
+  - ログイン/登録/メール認証/パスワードリセット/Googleログインの呼び出し
+- API ベースURL
+  - VITE_API_BASE_URL を優先（なければ window.location.origin を基準にする実装）
+- トークンの保存先
+  - localStorage / sessionStorage を併用する前提のコードが存在します（services/websocketService.js, lib/socket.ts）。
+
+5.2 サウンド（contexts/SoundContext.jsx）
+- 効果音の読み込み/再生制御
+- soundManager と hooks/useSound に依存
+
+6. REST API（HTTP）との関連
+6.1 API クライアント（services/apiClient.js）
+- axios を利用
+- Authorization の付与
+  - localStorage / sessionStorage / cookie などから token を拾って header へ付与する実装
+- 401 の扱い
+  - window.__onAuthExpired があれば呼び出し（強制ログアウト等のフック用）
+- 自動refresh（ENABLE_AUTO_REFRESH）は現状 false
+
+6.2 fetch パッチ（services/fetchAuthPatch.js）
+- 目的
+  - 画面側の既存実装が “axios ではなく fetch を直接呼ぶ” 場合に備え、
+    Authorization 付与と request body のキー名差分を吸収します。
+- 主な機能
+  - join-by-user の body キーをサーバ側の期待名へ寄せる（config/apiNaming.js の定義）
+  - token を拾って Authorization を付与（実装は minify されているため読む時は注意）
+
+6.3 主要エンドポイント（フロントが主に触るもの）
+- /api/auth/*（認証）
+- /api/user/*（プロフィール/設定）
+- /api/lobby/*（ロビー・待ち状態・オファー・招待）
+- /api/game/*（対局状態取得・指し手・投了・観戦導線）
+- /api/kifu/*（棋譜検索・棋譜詳細）
+- /api/public/*（ブログ一覧/問い合わせ送信 など）
+※ 詳細な仕様は backend/SPEC.txt を参照（契約は backend が主）。
+
+7. Socket.IO（WebSocket）との関連
+7.1 接続と認証
+- backend は接続時の auth.token（またはクエリ token）に入った JWT を decode して user_id を特定します。
+- フロントは下記のいずれかで token を渡します（実装箇所が複数あります）:
+  - socket.io-client の auth: { token }
+  - 接続URLの query parameter: ?token=...
+- 重要: backend の user room は user:<user_id> で、接続時に自動 join されます。
+
+7.2 ルームの概念（backend 側の命名に合わせる）
+- lobby ルーム: ロビー全体ブロードキャスト（online_users_update, lobby_spectators_update 等）
+- game:<game_id> ルーム: 対局/観戦の同期（game_update, chat_message 等）
+- user:<user_id> ルーム: 個別通知（lobby_offer_update 等）
+
+7.3 フロントが利用しているイベント（GameView.jsx から）
+- emit（送信）
+  - make_move: { game_id, usi, ... }（基本は usi を送る）
+  - resign: { game_id }
+  - chat_message: { game_id, text }
+- on（受信）
+  - game_update: 対局状態のスナップショット（盤面/手番/時間/勝敗など）
+  - move_result: make_move の応答（成功/失敗・詰み・チェック等）
+  - game:move: 任意クライアント向けの簡易イベント（必要なら使用）
+  - chat_message / chat_history: チャット表示
+  - analysis_update: 解析結果の更新（エンジン解析が有効な場合）
+  - game:finished / game:user_connected / game:user_disconnected
+  - spectators_update（観戦者一覧）
+  - time_update（バックエンド実装の有効化状況に依存）
+
+※ ロビー側は lobby_offer_update や online_users_update を受ける実装が存在します（hooks/useLobbyOfferEventsStable 等）。
+
+8. 将棋表現（USI / SFEN）と盤面更新方針
+8.1 サーバ→クライアントの基本
+- game_update には以下が含まれます（代表例）
+  - start_sfen: 開始局面（SFEN）
+  - move_history: 指し手履歴（USI の配列）
+- フロントは「start_sfen + move_history の再生」で盤面を描画する設計になっています。
+  - move_result で board を直接適用するより、再生で一貫性を保つ意図です（services/socket_handlers.ts 参照）。
+
+8.2 USI（指し手）表記
+- 通常移動: 7g7f, 2b3c+（成りは末尾 +）
+- 打ち駒: P*7f（駒種 * 行列）
+- backend の make_move は “usi を正とする” ため、クライアントは usi を送るのが安全です。
+
+9. 既知の“実装上の注意点”（運用/保守のため）
+- Socket.IO 接続実装が複数ある（services/websocketService.js と lib/socket.ts）
+  - 画面ごとに参照が混在すると、イベント名/接続先がズレやすいです。
+  - どちらを正とするか決め、片方へ寄せるのが望ましいです。
+- websocketService.js 内に send_chat という emit 名が見えますが、
+  実際の backend 実装は chat_message を受けるため、画面側は chat_message を使う必要があります。
+- join-by-user の body キー名は server と client の差を吸収するための仕組み（config/apiNaming.js / fetchAuthPatch.js）が入っています。
+  - UI側でキー名を変えるより、吸収レイヤを維持する方が安全です。
+
+10. 変更時のチェックリスト（最低限）
+- API/WS のイベント名・payload の変更は backend/SPEC.txt の契約と合わせて更新する
+- 盤面更新は start_sfen + move_history の整合性が最重要（途中 state 差分適用と混ぜない）
+- VITE_* 環境変数の変更は build と deploy 両方で反映確認する

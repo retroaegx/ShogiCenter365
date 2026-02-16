@@ -1,0 +1,28 @@
+{# HTML fragment for overlay display. (No <html> / <head> here.) #}
+
+{% if not messages %}
+  <div class="muted">チャット履歴はありません。</div>
+{% else %}
+  <div class="small muted" style="margin-bottom: 8px;">{{ messages|length }}件</div>
+  <table>
+    <thead>
+      <tr><th>時刻</th><th>対局</th><th>内容</th><th>警告</th></tr>
+    </thead>
+    <tbody>
+      {% for m in messages %}
+        <tr>
+          <td class="mono">{{ m.timestamp }}</td>
+          <td class="mono">{{ m.game_id }}</td>
+          <td>{{ m.text }}</td>
+          <td>
+            {% if m.flagged %}
+              <span class="flag">検出: {{ m.hit_words|join(', ') }}</span>
+            {% else %}
+              <span class="muted">-</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}

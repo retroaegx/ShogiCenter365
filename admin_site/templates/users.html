@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ユーザー管理</title>
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Yu Gothic", sans-serif; background:#f3f4f6; }
+    .wrap { padding: 24px; max-width: 1100px; margin: 0 auto; }
+    .card { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; box-shadow: 0 10px 30px rgba(0,0,0,.08); padding:18px; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap: wrap; }
+    a.btn, button.btn { padding: 10px 12px; border-radius: 12px; border:1px solid rgba(0,0,0,.12); background:#fff; color:#111827; font-weight:700; font-size: 14px; text-decoration:none; cursor:pointer; }
+    button.primary { background:#111827; color:#fff; }
+    button.danger { background:#b91c1c; border-color:#b91c1c; color:#fff; }
+    button.secondary { background:#fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align:left; padding: 10px 8px; border-bottom: 1px solid rgba(0,0,0,.08); font-size: 13px; vertical-align: top; }
+    th { opacity: .8; white-space: nowrap; }
+    .muted { opacity: .7; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid rgba(0,0,0,.15); }
+    .ban { background:#fee2e2; border-color:#ef4444; color:#991b1b; }
+    .ok { background:#ecfdf5; border-color:#10b981; color:#047857; }
+    .op { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+    .dot { width:10px; height:10px; border-radius:50%; background:#dc2626; display:inline-block; margin-left:6px; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0.1; } }
+    .search { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+    input[type="text"] { padding:10px 12px; border:1px solid rgba(0,0,0,.18); border-radius:12px; font-size:14px; min-width: 260px; }
+    label.chk { display:flex; align-items:center; gap:6px; font-size: 13px; opacity:.9; user-select:none; }
+    input[type="checkbox"] { width: 16px; height: 16px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid rgba(0,0,0,.12); border-radius: 999px; background:#fff; }
+    form { margin:0; }
+    dialog { border: none; border-radius: 16px; padding: 0; width: min(720px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+    dialog::backdrop { background: rgba(0,0,0,.45); }
+    .modal { padding: 18px; }
+    .modal h2 { margin: 0 0 10px; font-size: 18px; }
+    .row { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    select { padding: 10px 12px; border:1px solid rgba(0,0,0,.18); border-radius:12px; font-size:14px; background:#fff; }
+    textarea { width: 100%; min-height: 120px; padding: 10px 12px; border:1px solid rgba(0,0,0,.18); border-radius:12px; font-size:14px; resize: vertical; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top: 12px; }
+    .divider { height: 1px; background: rgba(0,0,0,.08); margin: 12px 0; }
+    .small { font-size: 12px; opacity: .75; }
+    .hint { font-size: 12px; opacity: .75; margin-top: 6px; }
+
+    /* --- chat overlay ---------------------------------------------- */
+    #chatDialog { width: min(1020px, 96vw); }
+    .flag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#fee2e2; border:1px solid #ef4444; color:#991b1b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .chat-scroll { max-height: 70vh; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <h1>ユーザー管理</h1>
+        <div style="display:flex; gap:10px; flex-wrap: wrap;">
+          <a class="btn" href="{{ url_for('menu') }}">メニューへ</a>
+        </div>
+      </div>
+      <div class="muted" style="margin-bottom:12px;">初期表示は「チャット警告あり → 名前順」。入力・フィルター・ソートはページ内でリアルタイムに反映されます。</div>
+
+      <div class="search" style="margin-bottom: 14px;">
+        <input id="filterText" type="text" placeholder="ユーザー名でフィルター" value="{{ q or '' }}" />
+        <span class="pill">
+          <label class="chk"><input id="filterBanOnly" type="checkbox" />BANのみ</label>
+          <label class="chk"><input id="filterChatOnly" type="checkbox" />チャット警告のみ</label>
+          <span style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:13px; opacity:.9;">警告件数</span>
+            <select id="filterWarnMin">
+              <option value="0">すべて</option>
+              <option value="1">1件以上</option>
+              <option value="3">3件以上</option>
+              <option value="5">5件以上</option>
+              <option value="10">10件以上</option>
+            </select>
+          </span>
+        </span>
+        <span class="pill">
+          <span style="font-size:13px; opacity:.9;">ソート</span>
+          <select id="sortKey">
+            <option value="chat_then_name" selected>チャット警告→名前</option>
+            <option value="username">名前</option>
+            <option value="warning_count">警告件数</option>
+            <option value="banned">BAN</option>
+            <option value="chat_warning">チャット警告</option>
+          </select>
+          <select id="sortDir">
+            <option value="asc" selected>昇順</option>
+            <option value="desc">降順</option>
+          </select>
+        </span>
+        <button id="btnClear" class="btn" type="button">クリア</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ユーザー名</th>
+            <th>警告数</th>
+            <th>状態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr
+              data-username="{{ (u.username or '')|lower }}"
+              data-warning-count="{{ u.warning_count }}"
+              data-banned="{{ '1' if u.is_banned else '0' }}"
+              data-chat-warning="{{ '1' if u.chat_warning_flag else '0' }}"
+            >
+              <td>
+                <div style="font-weight:700;">{{ u.username }}</div>
+                <div class="muted">id: {{ u.id }}</div>
+              </td>
+              <td>{{ u.warning_count }}</td>
+              <td>
+                {% if u.is_banned %}
+                  <span class="tag ban">BAN</span>
+                {% else %}
+                  <span class="tag ok">OK</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="op">
+                  <button class="btn" type="button" onclick="openWarnModal('{{ u.id }}','{{ u.username|e }}')">警告</button>
+                  {% if u.is_banned %}
+                    <form method="post" action="{{ url_for('admin_user_unban', user_id=u.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                      <button class="btn secondary" type="submit">BAN解除</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{{ url_for('admin_user_ban', user_id=u.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                      <button class="btn danger" type="submit">BAN</button>
+                    </form>
+                  {% endif %}
+                  <a
+                    class="btn chatLink"
+                    data-user-id="{{ u.id }}"
+                    data-username="{{ u.username|e }}"
+                    href="{{ url_for('admin_user_chat', user_id=u.id) }}"
+                  >
+                    チャット履歴
+                    {% if u.chat_warning_flag %}<span class="dot" title="警告ワード検出"></span>{% endif %}
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <dialog id="warnDialog">
+    <div class="modal">
+      <h2>警告を送る</h2>
+      <div class="muted" id="warnTarget"></div>
+
+      <div class="divider"></div>
+
+      <div class="row" style="margin-bottom: 10px;">
+        <label class="small" for="warnTemplateSelect">テンプレート</label>
+        <select id="warnTemplateSelect"></select>
+        <button class="btn secondary" type="button" onclick="applySelectedTemplate()">反映</button>
+      </div>
+
+      <form id="warnForm" method="post" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label class="small" for="warnMessage">警告文（次回ログイン時に1回だけ表示）</label>
+        <textarea id="warnMessage" name="message" placeholder="ここに警告文を入力"></textarea>
+        <div class="hint">テンプレートを選んで「反映」すると自動入力されるよ。編集もできるよ。</div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <label class="small" for="newTemplateName">テンプレ名</label>
+          <input id="newTemplateName" type="text" placeholder="例：チャットマナー" style="flex:1; min-width: 220px;" />
+          <button class="btn" type="button" onclick="saveTemplateFromCurrent()">この文章をテンプレに保存</button>
+        </div>
+        <div class="hint">テンプレは追加すると、次からプルダウンに出るよ。</div>
+
+        <div class="modal-actions">
+          <button class="btn secondary" type="button" onclick="closeWarnModal()">キャンセル</button>
+          <button class="btn primary" type="submit" onclick="return validateWarn()">警告を送信</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="chatDialog">
+    <div class="modal">
+      <div class="top" style="margin-bottom: 6px;">
+        <div>
+          <h2 style="margin:0; font-size:18px;">チャット履歴</h2>
+          <div class="muted" id="chatTarget"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap: wrap; align-items:center;">
+          <a class="btn" id="chatOpenNew" target="_blank" rel="noopener">別タブで開く</a>
+          <button class="btn secondary" type="button" onclick="closeChatModal()">閉じる</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div id="chatBody" class="chat-scroll">
+        <div class="muted">読み込み中…</div>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const CSRF_TOKEN = {{ csrf_token|tojson }};
+    const WARN_URL_TEMPLATE = {{ url_for('admin_user_warn', user_id='__UID__')|tojson }};
+    const API_ADD_TEMPLATE = {{ url_for('admin_api_add_warning_template')|tojson }};
+    let WARN_TEMPLATES = {{ (warning_templates or [])|tojson }};
+
+    const dlg = document.getElementById('warnDialog');
+    const warnTarget = document.getElementById('warnTarget');
+    const warnForm = document.getElementById('warnForm');
+    const warnMessage = document.getElementById('warnMessage');
+    const templateSelect = document.getElementById('warnTemplateSelect');
+    const newTemplateName = document.getElementById('newTemplateName');
+
+    // ---- chat overlay -----------------------------------------------
+    const chatDlg = document.getElementById('chatDialog');
+    const chatTarget = document.getElementById('chatTarget');
+    const chatBody = document.getElementById('chatBody');
+    const chatOpenNew = document.getElementById('chatOpenNew');
+
+    function buildPartialUrl(href) {
+      try {
+        const u = new URL(href, window.location.origin);
+        u.searchParams.set('partial', '1');
+        return u.toString();
+      } catch (e) {
+        // fallback
+        return href + (href.includes('?') ? '&' : '?') + 'partial=1';
+      }
+    }
+
+    function showDialogCompat(dialogEl) {
+      if (dialogEl && typeof dialogEl.showModal === 'function') {
+        dialogEl.showModal();
+      } else if (dialogEl) {
+        dialogEl.setAttribute('open', 'open');
+      }
+    }
+
+    function closeDialogCompat(dialogEl) {
+      if (dialogEl && typeof dialogEl.close === 'function') {
+        dialogEl.close();
+      } else if (dialogEl) {
+        dialogEl.removeAttribute('open');
+      }
+    }
+
+    async function openChatModal(userId, username, href, anchorEl) {
+      chatTarget.textContent = `${username} (id: ${userId})`;
+      chatOpenNew.href = href;
+      chatBody.innerHTML = '<div class="muted">読み込み中…</div>';
+      showDialogCompat(chatDlg);
+
+      try {
+        const res = await fetch(buildPartialUrl(href), {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'fetch' },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const html = await res.text();
+        chatBody.innerHTML = html;
+        // If the chat page clears the warning flag, reflect it optimistically.
+        if (anchorEl) {
+          const dot = anchorEl.querySelector('.dot');
+          if (dot) dot.remove();
+        }
+      } catch (e) {
+        chatBody.innerHTML = `
+          <div style="padding: 8px;">
+            <div class="muted">読み込みに失敗したよ。</div>
+            <div style="margin-top: 10px; display:flex; gap:10px; flex-wrap: wrap;">
+              <a class="btn" href="${href}">別ページで開く</a>
+              <button class="btn secondary" type="button" onclick="closeChatModal()">閉じる</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function closeChatModal() {
+      closeDialogCompat(chatDlg);
+    }
+
+    document.addEventListener('click', (ev) => {
+      const a = ev.target && ev.target.closest ? ev.target.closest('a.chatLink') : null;
+      if (!a) return;
+      ev.preventDefault();
+      const uid = a.dataset.userId || '';
+      const uname = a.dataset.username || '';
+      openChatModal(uid, uname, a.href, a);
+    });
+
+    function refreshTemplateSelect(selectedId) {
+      templateSelect.innerHTML = '';
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = 'テンプレを選択…';
+      templateSelect.appendChild(opt0);
+
+      for (const t of (WARN_TEMPLATES || [])) {
+        const opt = document.createElement('option');
+        opt.value = t.id || '';
+        opt.textContent = (t.is_builtin ? '★ ' : '') + (t.name || 'テンプレート');
+        opt.dataset.message = t.message || '';
+        opt.dataset.name = t.name || '';
+        templateSelect.appendChild(opt);
+      }
+      if (selectedId) {
+        templateSelect.value = selectedId;
+      }
+    }
+
+    refreshTemplateSelect();
+
+    function openWarnModal(userId, username) {
+      warnForm.action = WARN_URL_TEMPLATE.replace('__UID__', userId);
+      warnTarget.textContent = `対象: ${username} (id: ${userId})`;
+      warnMessage.value = '';
+      newTemplateName.value = '';
+      refreshTemplateSelect();
+      if (typeof dlg.showModal === 'function') {
+        dlg.showModal();
+      } else {
+        // fallback
+        dlg.setAttribute('open', 'open');
+      }
+      setTimeout(() => warnMessage.focus(), 0);
+    }
+
+    function closeWarnModal() {
+      if (typeof dlg.close === 'function') {
+        dlg.close();
+      } else {
+        dlg.removeAttribute('open');
+      }
+    }
+
+    function applySelectedTemplate() {
+      const opt = templateSelect.options[templateSelect.selectedIndex];
+      if (!opt || !opt.dataset) return;
+      const msg = opt.dataset.message || '';
+      const nm = opt.dataset.name || '';
+      if (msg) warnMessage.value = msg;
+      if (nm) newTemplateName.value = nm;
+      warnMessage.focus();
+    }
+
+    function validateWarn() {
+      const msg = (warnMessage.value || '').trim();
+      if (!msg) {
+        alert('警告文を入力してね。');
+        warnMessage.focus();
+        return false;
+      }
+      return true;
+    }
+
+    async function saveTemplateFromCurrent() {
+      const msg = (warnMessage.value || '').trim();
+      if (!msg) {
+        alert('テンプレに保存する文章が空だよ。');
+        warnMessage.focus();
+        return;
+      }
+      const nm = (newTemplateName.value || '').trim();
+
+      try {
+        const res = await fetch(API_ADD_TEMPLATE, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': CSRF_TOKEN,
+          },
+          body: JSON.stringify({ name: nm, message: msg })
+        });
+        const data = await res.json();
+        if (!data || !data.templates) {
+          alert('テンプレ保存に失敗したよ。');
+          return;
+        }
+        WARN_TEMPLATES = data.templates;
+        refreshTemplateSelect(data.id);
+        templateSelect.value = data.id || '';
+      } catch (e) {
+        alert('テンプレ保存に失敗したよ。');
+      }
+    }
+
+    // ---- realtime filter/sort ----------------------------------------
+    (() => {
+      const $ = (id) => document.getElementById(id);
+
+      const input = $("filterText");
+      const banOnly = $("filterBanOnly");
+      const chatOnly = $("filterChatOnly");
+      const warnMin = $("filterWarnMin");
+      const sortKey = $("sortKey");
+      const sortDir = $("sortDir");
+      const btnClear = $("btnClear");
+
+      if (!input || !banOnly || !chatOnly || !warnMin || !sortKey || !sortDir || !btnClear) return;
+
+      const tbody = document.querySelector("tbody");
+      if (!tbody) return;
+
+      const rows = Array.from(tbody.querySelectorAll("tr")).map((tr) => {
+        const username = (tr.dataset.username || "").toLowerCase();
+        const warningCount = parseInt(tr.dataset.warningCount || "0", 10) || 0;
+        const banned = tr.dataset.banned === "1";
+        const chatWarning = tr.dataset.chatWarning === "1";
+        return { tr, username, warningCount, banned, chatWarning };
+      });
+
+      const cmpText = (a, b) => (a || "").localeCompare(b || "", "ja");
+      const cmpNum = (a, b) => (a === b ? 0 : a < b ? -1 : 1);
+
+      const compareByKey = (a, b, key) => {
+        switch (key) {
+          case "username":
+            return cmpText(a.username, b.username);
+          case "warning_count":
+            return cmpNum(a.warningCount, b.warningCount);
+          case "banned":
+            return cmpNum(a.banned ? 1 : 0, b.banned ? 1 : 0);
+          case "chat_warning":
+            return cmpNum(a.chatWarning ? 1 : 0, b.chatWarning ? 1 : 0);
+          case "chat_then_name":
+          default:
+            if (a.chatWarning !== b.chatWarning) return a.chatWarning ? -1 : 1; // chat warning first
+            return cmpText(a.username, b.username);
+        }
+      };
+
+      const apply = () => {
+        const q = (input.value || "").trim().toLowerCase();
+        const min = parseInt(warnMin.value || "0", 10) || 0;
+        const wantBan = banOnly.checked;
+        const wantChat = chatOnly.checked;
+
+        for (const r of rows) {
+          let ok = true;
+          if (q && !r.username.includes(q)) ok = false;
+          if (wantBan && !r.banned) ok = false;
+          if (wantChat && !r.chatWarning) ok = false;
+          if (min > 0 && r.warningCount < min) ok = false;
+          r.tr.style.display = ok ? "" : "none";
+        }
+
+        const key = sortKey.value || "chat_then_name";
+        const dir = sortDir.value || "asc";
+        const mul = dir === "desc" ? -1 : 1;
+        rows.sort((a, b) => compareByKey(a, b, key) * mul);
+        for (const r of rows) tbody.appendChild(r.tr);
+      };
+
+      const onInput = () => apply();
+      input.addEventListener("input", onInput);
+      banOnly.addEventListener("change", onInput);
+      chatOnly.addEventListener("change", onInput);
+      warnMin.addEventListener("change", onInput);
+      sortKey.addEventListener("change", onInput);
+      sortDir.addEventListener("change", onInput);
+
+      btnClear.addEventListener("click", () => {
+        input.value = "";
+        banOnly.checked = false;
+        chatOnly.checked = false;
+        warnMin.value = "0";
+        sortKey.value = "chat_then_name";
+        sortDir.value = "asc";
+        apply();
+        input.focus();
+      });
+
+      apply();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "system_username": "system",
+  "game_end_win": "The game has ended. {winner} wins.",
+  "game_end_draw": "The game has ended. It's a draw.",
+  "player_reconnected": "{name} reconnected.",
+  "player_disconnected": "{name} disconnected. (remaining grace: {remaining})"
+}

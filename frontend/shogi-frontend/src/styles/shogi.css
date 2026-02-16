@@ -1,0 +1,334 @@
+
+/* === shogi theme overrides for app === */
+:root {
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-card);
+  --muted: var(--paper-card);
+  --muted-foreground: var(--ink-soft);
+  --border: var(--paper-line);
+  --ring: var(--accent);
+}
+html, body, #root { height: 100%; }
+.shogi-theme {
+  background: var(--paper) url('/shogi-assets/background.png') center/cover fixed no-repeat;
+  color: var(--ink);
+  min-height: 100%;
+}
+.card-like {
+  background: var(--paper-card);
+  border: 1px solid var(--paper-line);
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  border-radius: 16px;
+}
+header.site-header {
+  background: rgba(255,255,255,.85);
+  border-bottom: 1px solid var(--paper-line);
+}
+.shogi-nav-btn {
+  border-radius: 9999px;
+  padding: .5rem 1rem;
+  border: 1px solid transparent;
+}
+.shogi-nav-btn.active {
+  background: var(--paper-card);
+  border-color: var(--paper-line);
+}
+.account-card .card {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+
+
+/* ==== imported original CSS (scoped by classnames) ==== */
+/* ========== Base ========== */
+* { box-sizing: border-box; }
+:root{
+  --paper: #efe2c5;
+  --ink: #1d1d1b;
+  --ink-soft: rgba(0,0,0,.65);
+  --paper-card: rgba(255,255,255,0.58);
+  --paper-line: rgba(0,0,0,.08);
+  --accent: #3a2f25;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "Noto Serif JP", "游明朝", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper) url('/shogi-assets/background.png') left center / cover no-repeat fixed;
+}
+.container {
+  width: min(1120px, 92vw);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* ========== Header (light, transparent band across full width) ========== */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(239,226,197,.24); /* 透明感のある和紙色 */
+  backdrop-filter: blur(4px) saturate(110%);
+  -webkit-backdrop-filter: blur(4px) saturate(110%);
+  box-shadow: 0 2px 8px rgba(0,0,0,.03);
+  border-bottom: 1px solid var(--paper-line);
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+}
+.brand {
+  font-weight: 800;
+  letter-spacing: .12em;
+  font-size: 24px;
+  color: var(--accent);
+}
+.nav { margin-left: auto; position: relative; }
+.nav-toggle { display: none; background: transparent; border: none; font-size: 22px; padding: 6px 10px; }
+.nav-list { list-style: none; display: flex; gap: 32px; margin: 0; padding: 0; }
+.nav-list a { text-decoration: none; color: var(--accent); font-weight: 700; letter-spacing: .08em; padding: 2px 4px; border-radius: 6px; }
+.nav-list a:hover, .nav-list a:focus { text-decoration: underline; outline: none; }
+
+/* ========== Hero ========== */
+.hero { padding: 42px 0 24px; }
+.hero-inner { display: grid; grid-template-columns: 1.2fr 1fr; align-items: start; gap: 36px; }
+.hero-copy { padding-top: 12vh; padding-left: clamp(0px, 6vw, 80px); }
+.hero-sub { margin: 0 0 8px 6px; opacity: .85; font-size: 14px; letter-spacing: .08em; }
+/* Hero logo image */
+.hero-logo{
+  display:block;
+  width: clamp(260px, 45vw, 720px);
+  height: auto;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.15));
+}
+
+/* ========== Account Card ========== */
+.account-card { background: var(--paper-card); border: 1px solid var(--paper-line); border-radius: 16px; padding: 20px 20px 16px; box-shadow: 0 10px 26px rgba(0,0,0,.06); }
+.account-card h2 { margin: 0 0 12px; font-size: 20px; }
+.account-form label { display: block; margin: 12px 0 6px; font-size: 14px; }
+.account-form input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--paper-line); outline: none; background: #fffdf8; }
+.account-form input:focus { border-color: #b9a483; box-shadow: 0 0 0 4px rgba(185,164,131,.2); }
+.primary { display: inline-block; margin-top: 16px; width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #b9a483; background: linear-gradient(#fff, #f3e7ce); color: #2f291f; font-weight: 700; cursor: pointer; }
+.primary:hover { filter: brightness(0.98); }
+.account-links { margin-top: 12px; font-size: 13px; color: #5a4e3f; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.account-links a { color: inherit; text-decoration: none; }
+.account-links a:hover { text-decoration: underline; }
+.dot { opacity: .5; }
+
+/* ========== News list ========== */
+.news-listing { padding: 24px 0 72px; }
+.news-heading { margin: 8px 0 4px; }
+.news-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--paper-line); border-radius: 14px; background: rgba(255,255,255,.6); overflow: hidden; }
+.news-row { display: grid; grid-template-columns: 130px 1fr; gap: 18px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--paper-line); }
+.news-row:first-child { border-top: none; }
+.news-row time { font-size: 13px; color: #6b5b46; }
+.news-row .news-title { text-decoration: none; color: var(--accent); font-weight: 600; line-height: 1.5; }
+.news-row:hover { background: rgba(255,255,255,.75); }
+
+/* ========== Footer ========== */
+.site-footer { padding: 28px 0; border-top: 1px solid var(--paper-line); background: rgba(255,255,255,.5); }
+.site-footer small { opacity: .8; }
+
+/* ========== Responsive ========== */
+@media (max-width: 900px){
+  .hero-inner { grid-template-columns: 1fr; }
+  /* Mobile: the hero logo is hidden, so collapse the hero-copy area to avoid
+     pushing the account form below the fold. */
+  .hero { padding: 18px 0 18px; }
+  .hero-inner { gap: 18px; }
+  .hero-copy { display: none; padding-top: 0; padding-left: 0; }
+  .account-card { order: -1; }
+  .nav-toggle { display: inline-block; }
+  .nav-list {
+    position: absolute;
+    right: 0;
+    top: 120%;
+    background: rgba(255,255,255,.92);
+    border: 1px solid var(--paper-line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 220px;
+  }
+  .nav-list.open { display: flex; }
+  .news-row { grid-template-columns: 100px 1fr; }
+  .hero-logo{ display:none; } /* hide logo on mobile */
+}
+
+/* ====== Page templates ====== */
+.page-hero { padding: 28px 0 10px; }
+.page-title { margin: 0; font-size: clamp(24px, 4vw, 36px); }
+.page-desc { margin: 6px 0 0; color: #5a4e3f; }
+.plain-list { padding-left: 1.2em; }
+.form-card {
+  background: var(--paper-card);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.06);
+  margin: 12px 0 36px;
+}
+.form-card label { display: grid; gap: 6px; font-weight: 600; color: var(--accent); }
+.form-card input, .form-card textarea {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--paper-line); outline: none; background: #fffdf8;
+}
+.form-card textarea { resize: vertical; }
+.form-card input:focus, .form-card textarea:focus { border-color: #b9a483; box-shadow: 0 0 0 4px rgba(185,164,131,.2); }
+.brand a.brand-link{ color: inherit; text-decoration: none; }
+@media (max-width: 900px){
+  .page-title { font-size: clamp(22px, 6vw, 28px); }
+}
+
+/* ====== Title white frame (for page titles) ====== */
+.title-box{
+  display: inline-block;
+  padding: 8px 14px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid var(--paper-line);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.05);
+}
+
+/* ====== Body translucent pane ====== */
+.paper-pane{
+  background: rgba(255,255,255,.62);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.06);
+  margin: 16px 0 48px; /* align to container edges */
+}
+
+
+/* ====== Title translucent label ====== */
+.title-pane{
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(255,255,255,.56);
+  border: 1px solid var(--paper-line);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04);
+}
+
+/* ====== Section rhythm ====== */
+.page-hero{ padding: 28px 0 16px; }
+.section-spacing{ margin: 16px 0 48px; }
+
+.shogi-merge {
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+.shogi-merge h2, .shogi-merge h3 {
+  color: var(--ink);
+}
+
+/* === Lobby-like translucent brown layer (used in game panels) === */
+.shogi-lobby-layer {
+  background: linear-gradient(
+    180deg,
+    rgba(222, 184, 135, 0.82) 0%,
+    rgba(210, 166, 121, 0.82) 100%
+  );
+  box-shadow: 0 4px 20px rgba(139, 69, 19, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+
+/* ===== Shogi Auth Form Overrides ===== */
+.shogi-auth {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+  background: var(--paper-card);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+}
+
+.shogi-auth h2, .shogi-auth .card-title, .shogi-auth .card-description {
+  color: var(--ink);
+}
+
+.shogi-auth label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.shogi-auth .shogi-input,
+.shogi-auth input[type="text"],
+.shogi-auth input[type="email"],
+.shogi-auth input[type="password"] {
+  background: rgba(255,255,255,.9) !important;
+  border: 1px solid var(--paper-line) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 1px 0 rgba(0,0,0,.06);
+}
+
+.shogi-auth .shogi-btn,
+.shogi-auth button[type="submit"] {
+  border-radius: 9999px !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: 1px solid rgba(0,0,0,.15) !important;
+}
+
+.shogi-auth .shogi-btn:hover {
+  filter: brightness(1.05);
+}
+
+.shogi-auth .helper {
+  color: var(--ink-soft);
+}
+
+/*
+  NOTE:
+  - The SPA uses internal scroll containers and keeps <body> non-scrollable.
+  - The public top/static pages (TopStaticShogi) must be able to scroll on mobile,
+    otherwise the login/register form can be clipped.
+*/
+body:not(.shogi-static-body) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Allow the static/top pages to scroll naturally */
+body.shogi-static-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+}
+
+.app-root { height: 100svh; display:flex; flex-direction:column; overflow:hidden; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+@supports (height: 100dvh) { .app-root { height: 100dvh; } }
+
+.main-shell { flex: 1 1 auto; min-height: 0; display:flex; flex-direction:column; overflow:hidden; }
+
+.footer-bar { padding-bottom: env(safe-area-inset-bottom); }
+
+.user-list { flex: 1 1 auto; min-height: 0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+
+/* === Global popover surface (Radix portals to <body>) ===
+   NOTE: PopoverContent is rendered under <body>, so page-scoped styles (e.g. .shogi-auth)
+   won't apply. This class ensures the dropdown is readable over the textured background.
+*/
+.shogi-popover-paper {
+  background: rgba(255,255,255,.96) !important;
+  border-color: var(--paper-line) !important;
+  color: var(--ink) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.14) !important;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}

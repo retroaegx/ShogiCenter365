@@ -1,0 +1,376 @@
+/* RESP_MARK_123 */
+
+/* 将棋盤のレスポンシブ対応 */
+.shogi-board-container {
+  @apply w-full max-w-lg mx-auto;
+}
+
+@media (max-width: 640px) {
+  .shogi-board-container {
+    @apply max-w-sm;
+  }
+  
+  .shogi-square {
+    @apply w-8 h-8 text-xs;
+  }
+  
+  .shogi-coordinate {
+    @apply w-4 h-8 text-xs;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .shogi-board-container {
+    @apply max-w-md;
+  }
+  
+  .shogi-square {
+    @apply w-10 h-10 text-sm;
+  }
+  
+  .shogi-coordinate {
+    @apply w-5 h-10 text-xs;
+  }
+}
+
+@media (min-width: 769px) {
+  .shogi-square {
+    @apply w-12 h-12 text-sm;
+  }
+  
+  .shogi-coordinate {
+    @apply w-6 h-12 text-xs;
+  }
+}
+
+/* ロビーカードのレスポンシブ対応 */
+.lobby-cards-grid {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .lobby-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ゲーム画面のレスポンシブレイアウト */
+.game-layout {
+  @apply grid gap-6;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .game-layout {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+/* チャットエリアのレスポンシブ対応 */
+.chat-container {
+  @apply h-48;
+}
+
+@media (max-width: 640px) {
+  .chat-container {
+    @apply h-32;
+  }
+}
+
+@media (min-width: 1024px) {
+  .chat-container {
+    @apply h-64;
+  }
+}
+
+/* 持ち駒エリアのレスポンシブ対応 */
+.captured-pieces-container {
+  @apply p-3;
+}
+
+@media (max-width: 640px) {
+  .captured-pieces-container {
+    @apply p-2;
+  }
+  
+  .captured-piece-button {
+    @apply h-6 px-1 text-xs;
+  }
+}
+
+/* ナビゲーションのレスポンシブ対応 */
+.nav-container {
+  @apply flex flex-col gap-4;
+}
+
+@media (min-width: 640px) {
+  .nav-container {
+    @apply flex-row items-center justify-between;
+  }
+}
+
+/* 検索フォームのレスポンシブ対応 */
+.search-form-grid {
+  @apply grid grid-cols-1 gap-4;
+}
+
+@media (min-width: 640px) {
+  .search-form-grid {
+    @apply grid-cols-2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .search-form-grid {
+    @apply grid-cols-3;
+  }
+}
+
+/* カードコンテンツのレスポンシブ対応 */
+.card-content-responsive {
+  @apply p-4;
+}
+
+@media (max-width: 640px) {
+  .card-content-responsive {
+    @apply p-3;
+  }
+}
+
+/* ボタングループのレスポンシブ対応 */
+.button-group {
+  @apply flex gap-2;
+}
+
+@media (max-width: 640px) {
+  .button-group {
+    @apply flex-col;
+  }
+  
+  .button-group .btn {
+    @apply w-full;
+  }
+}
+
+/* テーブルのレスポンシブ対応 */
+.responsive-table {
+  @apply w-full overflow-x-auto;
+}
+
+.responsive-table table {
+  @apply min-w-full;
+}
+
+@media (max-width: 640px) {
+  .responsive-table {
+    @apply text-sm;
+  }
+}
+
+/* モーダルのレスポンシブ対応 */
+.modal-content {
+  @apply w-full max-w-lg mx-auto;
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    @apply max-w-sm mx-4;
+  }
+}
+
+/* フォームのレスポンシブ対応 */
+.form-container {
+  @apply w-full max-w-md mx-auto;
+}
+
+@media (max-width: 640px) {
+  .form-container {
+    @apply max-w-sm px-4;
+  }
+}
+
+/* ヘッダーのレスポンシブ対応 */
+.header-container {
+  @apply flex flex-col gap-4;
+}
+
+@media (min-width: 640px) {
+  .header-container {
+    @apply flex-row items-center justify-between;
+  }
+}
+
+/* サイドバーのレスポンシブ対応 */
+.sidebar-container {
+  @apply space-y-4;
+}
+
+@media (max-width: 1023px) {
+  .sidebar-container {
+    @apply order-first;
+  }
+}
+
+/* タブのレスポンシブ対応 */
+.tabs-responsive {
+  @apply w-full;
+}
+
+.tabs-list-responsive {
+  @apply grid w-full;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .tabs-list-responsive {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* バッジのレスポンシブ対応 */
+.badge-responsive {
+  @apply inline-flex;
+}
+
+@media (max-width: 640px) {
+  .badge-responsive {
+    @apply text-xs px-2 py-1;
+  }
+}
+
+/* アニメーション */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* ホバーエフェクト */
+.hover-lift {
+  @apply transition-transform duration-200;
+}
+
+.hover-lift:hover {
+  @apply transform -translate-y-1;
+}
+
+/* フォーカス状態の改善 */
+.focus-visible-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+}
+
+/* スクロールバーのカスタマイズ */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(148 163 184);
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  .custom-scrollbar {
+    scrollbar-color: rgb(71 85 105) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgb(71 85 105);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(100 116 139);
+  }
+}
+
+/* 印刷時のスタイル */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-break-before {
+    page-break-before: always;
+  }
+  
+  .print-break-after {
+    page-break-after: always;
+  }
+}
+
+/* アクセシビリティ対応 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 高コントラストモード対応 */
+@media (prefers-contrast: high) {
+  .shogi-square {
+    @apply border-2 border-black;
+  }
+  
+  .card {
+    @apply border-2 border-black;
+  }
+}
+
+/* タッチデバイス対応 */
+@media (hover: none) and (pointer: coarse) {
+  .hover-lift:hover {
+    @apply transform-none;
+  }
+  
+  .shogi-square {
+    @apply min-h-12 min-w-12;
+  }
+  
+  button {
+    @apply min-h-11;
+  }
+}
+
+/* === mobile edge & scroll fix === */
+@media (max-width: 640px) {
+  html, body { overflow-x: hidden; }
+}

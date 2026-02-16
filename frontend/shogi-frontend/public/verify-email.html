@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja" data-i18n-title="verify.documentTitle">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v7" />
+  <title></title>
+</head>
+<body class="shogi-static-body">
+  <div class="shogi-static">
+    <div id="staticHeader"></div>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <div class="paper-pane page-pane">
+            <header class="page-head">
+              <h1 class="page-title" data-i18n="verify.h1"></h1>
+              <p class="page-desc" data-i18n="verify.desc"></p>
+            </header>
+
+            <div class="page-body">
+              <div class="form-card" style="max-width: 560px;">
+                <p class="muted" id="verifyMsg" aria-live="polite" data-i18n="verify.status.processing"></p>
+                <div style="margin-top: 12px; display:flex; gap: 10px; flex-wrap: wrap;">
+                  <a class="primary" href="/" data-i18n="verify.links.home"></a>
+                  <a class="ghost" href="/#account" data-i18n="verify.links.login"></a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="staticFooter"></div>
+  </div>
+
+  <script defer src="/shogi-assets/static_shell.js?v=static-v10"></script>
+
+  <script defer src="/i18n/dom_i18n.js"></script>
+
+  <script defer src="/verify-email.js"></script>
+</body>
+</html>

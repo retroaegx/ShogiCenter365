@@ -1,0 +1,57 @@
+/* layout-fix-v16.css
+ * v15の上書き用（対局画面で縦がはみ出す問題の抑止）
+ * - main(=header/footer除いた領域)を必ず1画面に収める
+ * - シェル階層へ height/min-height を伝播し、overflow をクリップ
+ */
+
+:root {
+  /* JSが未計測の間の保険 */
+  --hdr: 0px;
+  --ftr: 0px;
+}
+
+/* NOTE:
+ * app-root is already a 3-row grid: header / main(1fr) / footer.
+ * So .site-main naturally becomes "header/footer excluded 100% height".
+ * Using vh/dvh calc here can break the *initial* paint when --hdr/--ftr are 0px,
+ * causing panels to render off-screen on some aspect ratios (e.g. 3:2).
+ * We therefore rely on the grid sizing and only enforce overflow/min-height.
+ */
+.site-main {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* シェル階層に高さ制約を伝播 */
+.site-main > .viewport-shell,
+.site-main > .viewport-shell > .main-shell,
+.site-main > .viewport-shell > .main-shell > .game-viewport {
+  height: 100%;
+  min-height: 0;
+}
+
+/* v15で overflow: visible になっているため、はみ出しを確実に止める */
+.site-main > .viewport-shell {
+  overflow: hidden;
+}
+
+/* 対局ビューの中で、デスクトップ用グリッド( hidden md:grid )が親高さを使えるように */
+.game-viewport > .hidden {
+  height: 100%;
+  min-height: 0;
+}
+
+/* 対局の上下(8:2)ブロックが縮められるように */
+.game-grid,
+.game-top,
+.game-bottom {
+  min-height: 0;
+}
+
+/* 下段（チャット/閲覧者）内部スクロールが効くように */
+.game-bottom {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

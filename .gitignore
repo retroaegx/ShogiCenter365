@@ -1,0 +1,27 @@
+# 環境依存・キャッシュ
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# secrets
+.env
+*.key
+
+# build
+dist/
+build/
+node_modules/
+engine/
+__pycache__
+
+# bot
+join_computer
+
+# local-only legal pages (not committed)
+frontend/shogi-frontend/public/terms.html
+frontend/shogi-frontend/public/privacy.html
+
+frontend/shogi-frontend/public/legal.html

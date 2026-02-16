@@ -1,0 +1,39 @@
+# Python dependencies (backend + engine_server + join_computer)
+#
+# Install:
+#   python -m pip install -r requirements.txt
+
+# --- Backend (Flask + Socket.IO) ---
+Flask==3.0.0
+Flask-Cors==4.0.0
+Flask-JWT-Extended==4.5.3
+Flask-Limiter==4.0.0
+Flask-SocketIO==5.5.1
+
+# eventlet-based production entrypoint (serve_eventlet.py)
+eventlet==0.40.3
+gunicorn==23.0.0
+
+# --- Storage / external services ---
+pymongo==4.6.0
+dnspython==2.4.2
+redis==6.4.0
+requests==2.32.5
+python-dotenv==1.0.0
+
+# --- Auth / security ---
+PyJWT==2.8.0
+argon2-cffi==25.1.0
+bcrypt>=4.1.0,<5
+
+# Google Sign-In (ID token verify)
+google-auth==2.43.0
+
+# --- Engine analysis HTTP service (engine_server.py) ---
+fastapi==0.110.0
+uvicorn==0.29.0
+pydantic==2.7.1
+
+# --- join_computer bot (Socket.IO client) ---
+python-socketio[client]==5.14.2
+websocket-client>=1.6.0,<2

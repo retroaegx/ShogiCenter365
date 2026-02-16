@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja" data-i18n-title="distribute.documentTitle">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+    <link rel="icon" href="/favicon.ico" />
+
+    <!-- Keep the same look & feel as other static pages -->
+    <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v7" />
+
+    <style>
+      body.shogi-static-body .shogi-static .resource-grid{
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin: 14px 0 18px;
+      }
+      body.shogi-static-body .shogi-static .resource-card{
+        background: rgba(255,255,255,.65);
+        border: 1px solid var(--paper-line);
+        border-radius: 16px;
+        padding: 14px 14px 12px;
+        box-shadow: 0 8px 20px rgba(0,0,0,.06);
+      }
+      body.shogi-static-body .shogi-static .resource-card h3{
+        margin: 0 0 6px;
+        font-size: 1.06rem;
+        font-weight: 900;
+        color: var(--ink);
+      }
+      body.shogi-static-body .shogi-static .resource-card p{
+        margin: 0 0 10px;
+        color: #5a4e3f;
+      }
+      body.shogi-static-body .shogi-static .resource-card .btn-row{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      body.shogi-static-body .shogi-static a.pill-btn{
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 9999px;
+        border: 1px solid var(--paper-line);
+        background: rgba(255,255,255,.85);
+        text-decoration: none;
+        font-weight: 800;
+        color: #000;
+      }
+      body.shogi-static-body .shogi-static a.pill-btn:hover,
+      body.shogi-static-body .shogi-static a.pill-btn:focus{
+        text-decoration: underline;
+        outline: none;
+      }
+      body.shogi-static-body .shogi-static .credit-box{
+        border-left: 4px solid var(--accent);
+        background: rgba(255,255,255,.70);
+        border: 1px solid var(--paper-line);
+        border-left-width: 4px;
+        border-radius: 14px;
+        padding: 10px 12px;
+        margin: 10px 0;
+      }
+      body.shogi-static-body .shogi-static .credit-box code{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: .95rem;
+        white-space: pre-wrap;
+      }
+      body.shogi-static-body .shogi-static .small-note{
+        margin-top: 8px;
+        color: #5a4e3f;
+        font-size: .98rem;
+      }
+      @media (max-width: 900px){
+        body.shogi-static-body .shogi-static .resource-grid{ grid-template-columns: 1fr; }
+      }
+    </style>
+
+    <script defer src="/shogi-assets/static_shell.js?v=static-v10"></script>
+  </head>
+  <body class="shogi-static-body">
+    <!-- Background layers (match other static pages) -->
+    <div id="siteBackground" class="site-bg" aria-hidden="true"></div>
+    <div id="bgOverlay" class="bg-overlay" aria-hidden="true"></div>
+
+    <div class="shogi-static" id="shogiStaticRoot">
+      <div id="staticHeader"></div>
+
+      <main class="container">
+        <section class="page-hero">
+          <div class="paper-pane page-pane">
+            <h1 class="page-title" data-i18n="distribute.h1"></h1>
+            <p class="page-desc" data-i18n="distribute.desc"></p>
+
+            <div class="page-body">
+              <div class="resource-grid" aria-label="" data-i18n-aria-label="distribute.grid.aria">
+                <div class="resource-card">
+                  <h3 data-i18n="distribute.card.source.title"></h3>
+                  <p data-i18n="distribute.card.source.desc"></p>
+                  <div class="btn-row">
+                    <a class="pill-btn" href="https://github.com/retroaegx/ShogiCenter365/tree/main" target="_blank" rel="noopener noreferrer" data-i18n="distribute.card.source.button"></a>
+                  </div>
+                </div>
+
+                <div class="resource-card">
+                  <h3 data-i18n="distribute.card.assets.title"></h3>
+                  <p data-i18n="distribute.card.assets.desc"></p>
+                  <div class="btn-row">
+                    <a class="pill-btn" href="http://sc365.f5.si/distribute/assets.zip" target="_blank" rel="noopener noreferrer" data-i18n="distribute.card.assets.assetsZip"></a>
+                    <a class="pill-btn" href="http://sc365.f5.si/distribute/board-theme.zip" target="_blank" rel="noopener noreferrer" data-i18n="distribute.card.assets.boardThemeZip"></a>
+                  </div>
+                  <p class="small-note" data-i18n="distribute.card.assets.note"></p>
+                </div>
+
+                <div class="resource-card">
+                  <h3 data-i18n="distribute.card.sfx.title"></h3>
+                  <ul class="plain-list">
+                    <li><a href="https://on-jin.com/" target="_blank" rel="noopener noreferrer" data-i18n="distribute.sfx.onjin"></a></li>
+                    <li><a href="https://otologic.jp/" target="_blank" rel="noopener noreferrer" data-i18n="distribute.sfx.otologic"></a></li>
+                    <li><a href="https://opengameart.org/content/sound-effects-11" target="_blank" rel="noopener noreferrer" data-i18n="distribute.sfx.opengameart"></a></li>
+                  </ul>
+                  <p class="small-note" data-i18n="distribute.card.sfx.note"></p>
+                </div>
+
+                <div class="resource-card">
+                  <h3 data-i18n="distribute.card.icons.title"></h3>
+                  <p data-i18n="distribute.card.icons.desc"></p>
+                  <div class="btn-row">
+                    <a class="pill-btn" href="https://heroicons.com/" target="_blank" rel="noopener noreferrer" data-i18n="distribute.card.icons.button"></a>
+                  </div>
+                </div>
+              </div>
+
+              <h2 data-i18n="distribute.credit.title"></h2>
+              <p class="muted" data-i18n="distribute.credit.desc"></p>
+
+              <h3 data-i18n="distribute.credit.onjin.title"></h3>
+              <div class="credit-box">
+                <code data-i18n="distribute.credit.onjin.code"></code>
+              </div>
+              <p class="muted" data-i18n="distribute.credit.onjin.note"></p>
+
+              <h3 data-i18n="distribute.credit.otologic.title"></h3>
+              <div class="credit-box">
+                <code data-i18n="distribute.credit.otologic.code"></code>
+              </div>
+              <p class="muted" data-i18n="distribute.credit.otologic.note"></p>
+
+              <h3 data-i18n="distribute.credit.opengameart.title"></h3>
+              <div class="credit-box">
+                <code data-i18n="distribute.credit.opengameart.code"></code>
+              </div>
+              <p class="muted" data-i18n="distribute.credit.opengameart.note"></p>
+
+              <h3 data-i18n="distribute.credit.heroicons.title"></h3>
+              <div class="credit-box">
+                <code data-i18n="distribute.credit.heroicons.code"></code>
+              </div>
+
+              <h3 data-i18n="distribute.credit.yaneuraou.title"></h3>
+              <div class="credit-box">
+                <code data-i18n="distribute.credit.yaneuraou.code"></code>
+              </div>
+              <p class="muted" data-i18n="distribute.credit.yaneuraou.note"></p>
+
+              <h3 data-i18n="distribute.credit.aobannue.title"></h3>
+              <div class="credit-box">
+                <code data-i18n="distribute.credit.aobannue.code"></code>
+              </div>
+              <p class="muted" data-i18n="distribute.credit.aobannue.note"></p>
+
+              <hr />
+              <p class="muted" data-i18n="distribute.legal"></p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div id="staticFooter"></div>
+    </div>
+    <script defer src="/i18n/dom_i18n.js"></script>
+</body>
+</html>

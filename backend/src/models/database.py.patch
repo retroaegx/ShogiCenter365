@@ -1,0 +1,52 @@
+*** a/backend/src/models/database.py
+--- b/backend/src/models/database.py
+@@
+ class _MemoryDB:
+     def __init__(self):
+-        self._store = {'games': {}, 'users': {}}
++        self._store = {'games': {}, 'users': {}, 'game_archives': {}}
+         self.games = _MemoryCollection(self._store['games'])
+         self.users = _MemoryCollection(self._store['users'])
++        self.game_archives = _MemoryCollection(self._store['game_archives'])
+@@
+ class DatabaseManager:
+@@
+-        self.games = None
+-        self.users = None
++        self.games = None
++        self.users = None
++        self.game_archives = None
+@@
+-        if MongoClient and uri:
++        if MongoClient and uri:
+             try:
+                 self.client = MongoClient(uri, serverSelectionTimeoutMS=3000)
+                 # verify connection once
+                 self.client.admin.command('ping')
+                 self.use_mongodb = True
+                 self.db = self.client.get_database(name)
+-                self.games = self.db.get_collection('games')
+-                self.users = self.db.get_collection('users')
++                self.games = self.db.get_collection('games')
++                self.users = self.db.get_collection('users')
++                self.game_archives = self.db.get_collection('game_archives')
+             except Exception:
+                 # fallback to memory DB
+                 self.use_mongodb = False
+                 self.db = _MemoryDB()
+-                self.games = self.db.games
+-                self.users = self.db.users
++                self.games = self.db.games
++                self.users = self.db.users
++                self.game_archives = self.db.game_archives
+         else:
+             self.use_mongodb = False
+             self.db = _MemoryDB()
+-            self.games = self.db.games
+-            self.users = self.db.users
++            self.games = self.db.games
++            self.users = self.db.users
++            self.game_archives = self.db.game_archives
+@@
+     def game_model(self) -> 'GameModel':
+         return GameModel(self)

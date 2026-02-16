@@ -1,0 +1,7 @@
+{
+  "system_username": "システム",
+  "game_end_win": "終局しました。{winner}の勝ちです。",
+  "game_end_draw": "終局しました。引き分けです。",
+  "player_reconnected": "{name} が再接続しました",
+  "player_disconnected": "{name} が切断しました（残り切断猶予 {remaining} 回）"
+}

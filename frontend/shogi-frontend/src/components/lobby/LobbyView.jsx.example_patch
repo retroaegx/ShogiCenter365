@@ -1,0 +1,2 @@
+/* このファイルは例。既存 LobbyView.jsx に create 後の fetch を入れてね。 */
+// 成功後に await fetchLobbyData() を呼ぶのがポイントだよ。

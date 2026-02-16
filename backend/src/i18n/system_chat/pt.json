@@ -1,0 +1,7 @@
+{
+  "system_username": "Sistema",
+  "game_end_win": "A partida terminou. {winner} vence.",
+  "game_end_draw": "A partida terminou. Empate.",
+  "player_reconnected": "{name} reconectou.",
+  "player_disconnected": "{name} desconectou. (tolerância restante: {remaining})"
+}

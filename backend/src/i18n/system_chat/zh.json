@@ -1,0 +1,7 @@
+{
+  "system_username": "系统",
+  "game_end_win": "对局结束。{winner} 胜。",
+  "game_end_draw": "对局结束。和棋。",
+  "player_reconnected": "{name} 已重新连接。",
+  "player_disconnected": "{name} 已断线。（剩余断线宽限：{remaining}）"
+}

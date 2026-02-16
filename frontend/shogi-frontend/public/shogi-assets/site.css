@@ -1,0 +1,685 @@
+/*
+  Unified styles for:
+   - Top (React: TopStaticShogi)
+   - Static pages (rules.html / ranking.html / contact.html)
+
+  Important:
+   - Everything is scoped under body.shogi-static-body and/or .shogi-static
+     so it won't change Lobby/SPA UI.
+*/
+
+:root{
+  --paper: #efe2c5;
+  --ink: #1d1d1b;
+  --ink-soft: rgba(0,0,0,.65);
+  --paper-card: rgba(255,255,255,.78);
+  --paper-line: rgba(0,0,0,.08);
+  --accent: #3a2f25;
+}
+
+/* Base */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body.shogi-static-body {
+  margin: 0;
+  color: var(--ink);
+  /* Mobile browsers sometimes treat 100% height containers as non-scrollable.
+     Force the document to be scrollable for static pages. */
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+
+  font-family: "Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP",serif;
+  background: var(--paper) url('/shogi-assets/background.png') left center / cover no-repeat fixed;
+}
+
+
+body.shogi-static-body #root{
+  height: auto;
+  min-height: 100%;
+}
+
+/* Sticky footer layout */
+body.shogi-static-body .shogi-static{
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+@supports (min-height: 100dvh) {
+  body.shogi-static-body .shogi-static{ min-height: 100dvh; }
+}
+body.shogi-static-body .shogi-static main{ flex: 1 0 auto; }
+
+body.shogi-static-body .shogi-static .container{
+  width: min(1120px, 92vw);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* PC(マウス操作想定): 最大幅と横幅割合をまとめて調整 */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  body.shogi-static-body .shogi-static .container{
+    width: min(2048px, 65vw);
+  }
+}
+
+/* Header (match Lobby) */
+body.shogi-static-body .shogi-static .site-header{
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(255,255,255,0.48);
+  border-bottom: 1px solid rgba(0,0,0,.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+body.shogi-static-body .shogi-static .site-header .header-inner{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px; /* same as Lobby (h-16) */
+}
+
+/* Header right side (language + nav) */
+body.shogi-static-body .shogi-static .site-header .header-actions{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Language picker (shared header UI) */
+body.shogi-static-body .shogi-static .lang-picker{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+body.shogi-static-body .shogi-static .lang-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--paper-line);
+  background: rgba(255,255,255,0.80);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: var(--ink);
+  cursor: pointer;
+}
+body.shogi-static-body .shogi-static .lang-btn:hover,
+body.shogi-static-body .shogi-static .lang-btn:focus{
+  background: rgba(255,255,255,0.95);
+  outline: none;
+}
+body.shogi-static-body .shogi-static .lang-btn.lang-btn-icon{
+  width: 36px;
+  padding: 0;
+}
+body.shogi-static-body .shogi-static .lang-ic{ display:block; }
+body.shogi-static-body .shogi-static .lang-flag{
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.9);
+}
+body.shogi-static-body .shogi-static .lang-flag img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display:block;
+}
+
+body.shogi-static-body .shogi-static .lang-panel{
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 260px;
+  border-radius: 16px;
+  border: 1px solid var(--paper-line);
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 12px 28px rgba(0,0,0,.14);
+  z-index: 60;
+}
+body.shogi-static-body .shogi-static .lang-panel-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--paper-line);
+}
+body.shogi-static-body .shogi-static .lang-panel-title{
+  font-weight: 900;
+  color: var(--ink);
+}
+body.shogi-static-body .shogi-static .lang-close{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink);
+}
+body.shogi-static-body .shogi-static .lang-close:hover,
+body.shogi-static-body .shogi-static .lang-close:focus{
+  background: rgba(0,0,0,.05);
+  outline: none;
+}
+body.shogi-static-body .shogi-static .lang-list{
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+body.shogi-static-body .shogi-static .lang-item{
+  width: 100%;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+}
+body.shogi-static-body .shogi-static .lang-item:hover,
+body.shogi-static-body .shogi-static .lang-item:focus{
+  background: rgba(0,0,0,.05);
+  outline: none;
+}
+body.shogi-static-body .shogi-static .lang-item.active{
+  background: rgba(0,0,0,.06);
+  border-color: var(--paper-line);
+}
+body.shogi-static-body .shogi-static .lang-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  min-width: 0;
+}
+body.shogi-static-body .shogi-static .lang-names{
+  display:flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+body.shogi-static-body .shogi-static .lang-native{
+  font-size: 14px;
+  font-weight: 900;
+}
+body.shogi-static-body .shogi-static .lang-label{
+  font-size: 12px;
+  opacity: .70;
+}
+body.shogi-static-body .shogi-static .lang-selected{
+  font-size: 12px;
+  opacity: .70;
+  white-space: nowrap;
+}
+body.shogi-static-body .shogi-static .lang-item:not(.active) .lang-selected{ display:none; }
+
+/* Brand (logo) */
+body.shogi-static-body .shogi-static .brand-link{
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+body.shogi-static-body .shogi-static .logo-icon{
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #b45309, #44403c);
+  box-shadow: 0 8px 16px rgba(0,0,0,.18);
+  flex: 0 0 auto;
+}
+body.shogi-static-body .shogi-static .logo-icon::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #d97706, #57534e);
+  filter: blur(14px);
+  opacity: .28;
+}
+body.shogi-static-body .shogi-static .logo-text{
+  line-height: 1.05;
+  min-width: 0;
+}
+body.shogi-static-body .shogi-static .logo-title{
+  display: block;
+  font-weight: 800;
+  font-size: 16px;
+  background: linear-gradient(90deg, #b45309, #57534e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+}
+body.shogi-static-body .shogi-static .logo-subtitle{
+  display: block;
+  font-size: 9px;
+  letter-spacing: .2em;
+  color: rgba(180, 83, 9, .60);
+  white-space: nowrap;
+}
+
+/* Nav */
+body.shogi-static-body .shogi-static .nav{ position: relative; }
+body.shogi-static-body .shogi-static .nav a{
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-decoration: none;
+}
+body.shogi-static-body .shogi-static .nav-toggle{
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  padding: 6px 10px;
+  color: var(--ink);
+}
+body.shogi-static-body .shogi-static .nav-list{
+  list-style: none;
+  display: flex;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+}
+body.shogi-static-body .shogi-static .nav-list a{
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+body.shogi-static-body .shogi-static .nav-list a:hover,
+body.shogi-static-body .shogi-static .nav-list a:focus{
+  text-decoration: underline;
+  outline: none;
+}
+body.shogi-static-body .shogi-static .nav-list a.active{
+  text-decoration: underline;
+}
+
+/* Footer (match Top) */
+body.shogi-static-body .shogi-static .site-footer{
+  margin-top: 24px;
+  padding: 28px 0;
+  background: rgba(255,255,255,0.50);
+  border-top: 1px solid var(--paper-line);
+}
+body.shogi-static-body .shogi-static .site-footer,
+body.shogi-static-body .shogi-static .site-footer small,
+body.shogi-static-body .shogi-static .site-footer p{
+  color: #000 !important;
+  font-weight: 800;
+}
+body.shogi-static-body .shogi-static .site-footer small{ font-size: 1.05rem; }
+body.shogi-static-body .shogi-static .site-footer p{ font-size: 1rem; }
+
+/* === Top page parts (used by TopStaticShogi) === */
+body.shogi-static-body .shogi-static .hero{ padding: 42px 0 24px; }
+body.shogi-static-body .shogi-static .hero-inner{
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  align-items: start;
+  gap: 36px;
+}
+body.shogi-static-body .shogi-static .hero-copy{
+  padding-top: 12vh;
+  padding-left: clamp(0px, 6vw, 80px);
+}
+body.shogi-static-body .shogi-static .hero-logo{
+  display:block;
+  width: clamp(260px, 45vw, 720px);
+  height: auto;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.15));
+}
+
+body.shogi-static-body .shogi-static .account-card{
+  background: var(--paper-card);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  padding: 16px;
+}
+body.shogi-static-body .shogi-static .account-card h2{
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+
+/* Segmented tabs (Login/Register) */
+body.shogi-static-body .shogi-static .account-tabs{
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--paper-line);
+  border-radius: 9999px;
+  background: rgba(255,255,255,.7);
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  margin-bottom: 12px;
+}
+body.shogi-static-body .shogi-static .account-tabs button[role="tab"]{
+  appearance: none;
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: .95rem;
+  letter-spacing: .02em;
+  color: var(--ink-soft);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+body.shogi-static-body .shogi-static .account-tabs button[role="tab"]:hover{
+  background: rgba(0,0,0,.05);
+}
+body.shogi-static-body .shogi-static .account-tabs button[role="tab"].active{
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 2px 6px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.15);
+}
+body.shogi-static-body .shogi-static .account-tabs button[role="tab"]:focus-visible{
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* News */
+body.shogi-static-body .shogi-static .news{ padding-bottom: 32px; }
+body.shogi-static-body .shogi-static .news-list{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--paper-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.6);
+  overflow: hidden;
+}
+
+/* === Static pages parts (rules/ranking/contact) === */
+body.shogi-static-body .shogi-static .page-hero{ padding: 28px 0 16px; }
+body.shogi-static-body .shogi-static .page-title{ margin: 0; font-size: clamp(24px, 4vw, 36px); }
+body.shogi-static-body .shogi-static .page-desc{ margin: 6px 0 0; color: #5a4e3f; }
+body.shogi-static-body .shogi-static .plain-list{ padding-left: 1.2em; }
+body.shogi-static-body .shogi-static .paper-pane{
+  background: rgba(255,255,255,.62);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.06);
+  margin: 16px 0 48px;
+}
+
+/* Rules / Ranking / Contact: keep title/desc/body in ONE paper pane */
+body.shogi-static-body .shogi-static .paper-pane.page-pane{
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 10px 26px rgba(0,0,0,.08);
+}
+body.shogi-static-body .shogi-static .page-pane .page-title{
+  font-weight: 800;
+}
+body.shogi-static-body .shogi-static .page-pane .page-desc{
+  font-size: 1.06rem;
+  margin-top: 8px;
+}
+body.shogi-static-body .shogi-static .page-pane .page-body{
+  margin-top: 14px;
+}
+body.shogi-static-body .shogi-static .page-pane .form-card{
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Page title/description inside the same white panel (match blog article head) */
+body.shogi-static-body .shogi-static .page-head-pane{
+  background: rgba(255,255,255,.82);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.08);
+  margin: 16px 0 18px; /* smaller than normal paper-pane */
+}
+body.shogi-static-body .shogi-static .page-head-pane .page-title{
+  font-weight: 800;
+}
+body.shogi-static-body .shogi-static .page-head-pane .page-desc{
+  font-size: 1.06rem;
+  margin-top: 8px;
+}
+
+body.shogi-static-body .shogi-static .section-spacing{ margin: 16px 0 48px; }
+body.shogi-static-body .shogi-static .muted{ color: #5a4e3f; }
+
+body.shogi-static-body .shogi-static .form-card{
+  background: var(--paper-card);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.06);
+  margin: 12px 0 36px;
+}
+body.shogi-static-body .shogi-static .form-card label{
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--accent);
+}
+body.shogi-static-body .shogi-static .form-card input,
+body.shogi-static-body .shogi-static .form-card textarea{
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--paper-line);
+  outline: none;
+  background: rgba(255,255,255,.9);
+}
+body.shogi-static-body .shogi-static .form-card textarea{ resize: vertical; }
+body.shogi-static-body .shogi-static .form-card input:focus,
+body.shogi-static-body .shogi-static .form-card textarea:focus{
+  border-color: #b9a483;
+  box-shadow: 0 0 0 4px rgba(185,164,131,.2);
+}
+
+/* Responsive */
+@media (max-width: 900px){
+  body.shogi-static-body .shogi-static .hero-inner{ grid-template-columns: 1fr; }
+  /* Mobile: the hero logo is hidden, so collapse the hero-copy area to avoid
+     pushing the account form below the fold. */
+  body.shogi-static-body .shogi-static .hero{ padding: 18px 0 18px; }
+  body.shogi-static-body .shogi-static .hero-inner{ gap: 18px; }
+  body.shogi-static-body .shogi-static .hero-copy{ display: none; padding-top: 0; padding-left: 0; }
+  body.shogi-static-body .shogi-static .nav-toggle{ display: inline-block; }
+  body.shogi-static-body .shogi-static .nav-list{
+    position: absolute;
+    right: 0;
+    top: 120%;
+    background: rgba(255,255,255,.92);
+    border: 1px solid var(--paper-line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 220px;
+  }
+  body.shogi-static-body .shogi-static .nav-list.open{ display: flex; }
+  body.shogi-static-body .shogi-static .hero-logo{ display:none; }
+  body.shogi-static-body .shogi-static .page-title{ font-size: clamp(22px, 6vw, 28px); }
+}
+
+/* === Blog post page (single article) === */
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-title{
+  margin: 0 0 6px;
+  font-size: clamp(24px, 4vw, 38px);
+  letter-spacing: .04em;
+  font-weight: 800;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-meta{
+  margin: 0 0 14px;
+  opacity: .78;
+  font-size: 1.05rem;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane{
+  background: rgba(255,255,255,.82);
+  border: 1px solid var(--paper-line);
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.08);
+  font-size: 1.14rem;
+  line-height: 2.0;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane .blog-post-head{
+  margin-bottom: 14px;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane .blog-post-head .blog-post-title{
+  margin: 0 0 6px;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane .blog-post-head .blog-post-meta{
+  margin: 0;
+  opacity: .78;
+  font-size: 1.05rem;
+}
+
+/* Click-to-open images (50% width on desktop) */
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane a.blog-img-link{
+  display: inline-block;
+  text-decoration: none;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane figure.blog-figure{
+  margin: 0.7em 0;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane figure.blog-figure img{
+  display: block;
+  width: 50%;
+  max-width: 50%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.10);
+  box-shadow: 0 6px 16px rgba(0,0,0,.10);
+}
+
+/* Keep the image usable on small screens */
+@media (max-width: 720px){
+  body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane figure.blog-figure img{
+    width: 100%;
+    max-width: 100%;
+  }
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane a{
+  text-decoration: underline;
+}
+
+/* Blog post rich content (Editor.js rendering) */
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane p{
+  margin: 0.7em 0;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane h2,
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane h3,
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane h4{
+  margin: 1.1em 0 0.45em;
+  line-height: 1.25;
+  letter-spacing: .02em;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane ul,
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane ol{
+  margin: 0.7em 0;
+  padding-left: 1.35em;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane li{
+  margin: 0.25em 0;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane figure{
+  margin: 1.0em 0;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane figcaption{
+  margin-top: 8px;
+  font-size: 0.98rem;
+  opacity: .78;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane hr{
+  border: 0;
+  border-top: 1px solid var(--paper-line);
+  margin: 1.2em 0;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane blockquote{
+  margin: 1.0em 0;
+  padding: 0.75em 1.0em;
+  border-left: 5px solid rgba(0,0,0,.18);
+  background: rgba(0,0,0,.03);
+  border-radius: 14px;
+}
+body.shogi-static-body.blog-post-page .shogi-static .blog-post-pane code{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: rgba(0,0,0,.06);
+  padding: 0.12em 0.42em;
+  border-radius: 8px;
+}
+
+
+@media (max-width: 520px){
+  /* Main content: use more of the screen width */
+  body.shogi-static-body .shogi-static main .container{
+    width: 100%;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  /* Header/footer keep comfortable side padding */
+  body.shogi-static-body .shogi-static header .container,
+  body.shogi-static-body .shogi-static .site-footer .container{
+    width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  body.shogi-static-body .shogi-static .site-header .header-inner{ height: 60px; }
+  body.shogi-static-body .shogi-static .logo-title{ font-size: 15px; }
+  body.shogi-static-body .shogi-static .logo-subtitle{ font-size: 8px; }
+
+  /* Top page: reduce vertical whitespace on phones */
+  body.shogi-static-body .shogi-static .hero{ padding: 8px 0 10px; }
+  body.shogi-static-body .shogi-static .hero-inner{ gap: 12px; }
+  body.shogi-static-body .shogi-static .account-card{ padding: 10px; }
+  body.shogi-static-body .shogi-static .account-card h2{ margin-bottom: 6px; }
+  body.shogi-static-body .shogi-static .account-tabs{ margin-bottom: 10px; }
+  body.shogi-static-body .shogi-static .account-tabs button[role="tab"]{ padding: 7px 12px; font-size: .90rem; }
+}
+
+@media (max-width: 360px){
+  body.shogi-static-body .shogi-static header .container,
+  body.shogi-static-body .shogi-static .site-footer .container{
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}

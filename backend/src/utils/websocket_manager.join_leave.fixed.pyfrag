@@ -1,0 +1,176 @@
+@self.socketio.on('join_game')
+def _join_game(data=None):
+    sid = request.sid
+    try:
+        data = data or {}
+        game_id = (data.get('game_id') or data.get('id') or '')
+        room = data.get('room')
+        if not game_id and isinstance(room, str) and room.startswith('game:'):
+            game_id = room.split('game:', 1)[1]
+        if not game_id:
+            emit('error', {'message': 'game_id required'}, room=sid)
+            return
+        room_name = f'game:{game_id}'
+
+        # Join and remember
+        join_room(room_name, sid=sid)
+        info = self.connected_users.get(sid) or {}
+        info['current_room'] = room_name
+        self.connected_users[sid] = info
+
+        # DB handles (PyMongo Database: no truthy)
+        from bson import ObjectId as _OID
+        db = getattr(current_app, "mongo_db", None)
+        if db is None:
+            db = current_app.config.get("MONGO_DB", None)
+        games_coll = None
+        if db is not None:
+            games_coll = db.get('games') if hasattr(db, 'get') else db['games']
+
+        # Determine if the joiner is a player
+        is_player = False
+        uid = info.get('user_id')
+        uname = info.get('username') or ''
+        try:
+            if games_coll is not None:
+                doc = games_coll.find_one({'_id': _OID(str(game_id))}) or {}
+                def _to_str(v):
+                    try:
+                        if isinstance(v, _OID): return str(v)
+                    except Exception:
+                        pass
+                    if isinstance(v, dict): return str(v.get('user_id') or v.get('id') or '')
+                    return str(v or '')
+                s_uid = _to_str(((doc.get('players') or {}).get('sente') or {}).get('user_id') or doc.get('sente_id'))
+                g_uid = _to_str(((doc.get('players') or {}).get('gote') or {}).get('user_id') or doc.get('gote_id'))
+                me_str = _to_str(uid)
+                is_player = bool(me_str and (me_str == s_uid or me_str == g_uid))
+        except Exception:
+            is_player = False
+
+        # Spectator registration (non-player)
+        if uid and (not is_player) and games_coll is not None:
+            # presence: spectating
+            try:
+                ou = db.get('online_users') if hasattr(db, 'get') else db['online_users']
+                from datetime import datetime as _dt
+                ou.update_one({'user_id': _OID(str(uid))},
+                              {'$set': {'waiting': 'spectating', 'waiting_info': {}, 'last_seen_at': _dt.utcnow()}},
+                              upsert=True)
+                try:
+                    socketio = getattr(current_app, 'socketio', None)
+                    if socketio:
+                        socketio.emit('online_users_update', {'type': 'waiting_changed'}, room='lobby')
+                except Exception:
+                    pass
+            except Exception:
+                logger.warning('presence spectating update failed', exc_info=True)
+            # add to game spectators
+            try:
+                games_coll.update_one({'_id': _OID(str(game_id))},
+                                      {'$addToSet': {'spectators': {'user_id': str(uid), 'username': uname}}},
+                                      upsert=False)
+            except Exception:
+                logger.warning('spectators addToSet failed', exc_info=True)
+
+        # ALWAYS broadcast latest spectators list (players/observers all receive)
+        try:
+            if games_coll is not None:
+                gdoc = games_coll.find_one({'_id': _OID(str(game_id))}) or {}
+                specs = gdoc.get('spectators') or []
+                self.socketio.emit(
+                    'spectators_update',
+                    {'game_id': str(game_id), 'spectators': specs, 'count': len(specs)},
+                    room=room_name
+                )
+                self.socketio.emit(
+                    'lobby_spectators_update',
+                    {'game_id': str(game_id), 'count': len(specs)},
+                    room='lobby'
+                )
+        except Exception:
+            logger.warning('spectators broadcast after join failed', exc_info=True)
+
+        emit('joined_game', {'room': room_name, 'game_id': game_id}, room=sid)
+    except Exception as e:
+        logger.error('join_game error: %s', e, exc_info=True)
+
+@self.socketio.on('leave_game')
+def _leave_game(data=None):
+    sid = request.sid
+    try:
+        data = data or {}
+        game_id = (data.get('game_id') or data.get('id') or '')
+        room = data.get('room')
+        room_name = None
+        if isinstance(room, str):
+            room_name = room
+        if not room_name and game_id:
+            room_name = f'game:{game_id}'
+
+        if room_name:
+            leave_room(room_name, sid=sid)
+
+        info = self.connected_users.get(sid) or {}
+        if info.get('current_room') == room_name:
+            info['current_room'] = None
+            self.connected_users[sid] = info
+
+        # DB handles
+        from bson import ObjectId as _OID
+        db = getattr(current_app, "mongo_db", None)
+        if db is None:
+            db = current_app.config.get("MONGO_DB", None)
+        games_coll = None
+        if db is not None:
+            games_coll = db.get('games') if hasattr(db, 'get') else db['games']
+
+        uid = info.get('user_id')
+
+        # spectator leave cleanup
+        try:
+            if uid and games_coll is not None and game_id:
+                try:
+                    games_coll.update_one({'_id': _OID(str(game_id))},
+                                          {'$pull': {'spectators': {'user_id': str(uid)}}})
+                except Exception:
+                    logger.warning('spectators pull failed', exc_info=True)
+                try:
+                    ou = db.get('online_users') if hasattr(db, 'get') else db['online_users']
+                    pres = ou.find_one({'user_id': _OID(str(uid))}) or {}
+                    if pres.get('waiting') == 'spectating':
+                        from datetime import datetime as _dt
+                        ou.update_one({'user_id': _OID(str(uid))},
+                                      {'$set': {'waiting': 'lobby', 'waiting_info': {}, 'last_seen_at': _dt.utcnow()}})
+                        try:
+                            socketio = getattr(current_app, 'socketio', None)
+                            if socketio:
+                                socketio.emit('online_users_update', {'type': 'waiting_changed'}, room='lobby')
+                        except Exception:
+                            pass
+                except Exception:
+                    logger.warning('presence reset failed', exc_info=True)
+        except Exception:
+            logger.warning('spectator leave handling failed', exc_info=True)
+
+        # Broadcast latest list
+        try:
+            if games_coll is not None and game_id:
+                gdoc = games_coll.find_one({'_id': _OID(str(game_id))}) or {}
+                specs = gdoc.get('spectators') or []
+                self.socketio.emit(
+                    'spectators_update',
+                    {'game_id': str(game_id), 'spectators': specs, 'count': len(specs)},
+                    room=room_name
+                )
+                self.socketio.emit(
+                    'lobby_spectators_update',
+                    {'game_id': str(game_id), 'count': len(specs)},
+                    room='lobby'
+                )
+        except Exception:
+            logger.warning('spectators broadcast after leave failed', exc_info=True)
+
+        emit('left_game', {'room': room_name, 'game_id': game_id}, room=sid)
+    except Exception as e:
+        logger.error('leave_game error: %s', e, exc_info=True)

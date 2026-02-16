@@ -1,0 +1,15 @@
+*** a/backend/src/routes/game.py
+--- b/backend/src/routes/game.py
+@@
+ @game_bp.route('/<game_id>/finalize', methods=['POST'])
+ @jwt_required()
+ def game_finalize(game_id):
+     svc = getattr(current_app, 'game_service', None)
+     if svc is None:
+         return jsonify({'message': 'service_unavailable'}), 503
+     me = str(get_jwt_identity())
+     payload = request.get_json(silent=True) or {}
+     winner = payload.get('winner')
+     reason = payload.get('reason')
+     res = _run_sync(svc.finalize_and_archive, game_id, winner, reason)
+     return jsonify(res if isinstance(res, dict) else {'success': bool(res)}), 200

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja" data-i18n-title="contact.documentTitle">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v7" />
+  <title></title>
+</head>
+<body class="shogi-static-body">
+  <div class="shogi-static">
+    <div id="staticHeader"></div>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <div class="paper-pane page-pane">
+            <header class="page-head">
+              <h1 class="page-title" data-i18n="contact.h1"></h1>
+              <p class="page-desc" data-i18n="contact.desc"></p>
+            </header>
+
+            <div class="page-body">
+              <form class="form-card" id="contactForm" onsubmit="return false;">
+                <label><span data-i18n="contact.form.name.label"></span>
+                  <input name="name" type="text" required placeholder="" data-i18n-placeholder="contact.form.name.placeholder" />
+                </label>
+                <label><span data-i18n="contact.form.subject.label"></span>
+                  <input name="subject" type="text" required placeholder="" data-i18n-placeholder="contact.form.subject.placeholder" />
+                </label>
+                <label><span data-i18n="contact.form.email.label"></span>
+                  <input name="email" type="email" required placeholder="" data-i18n-placeholder="contact.form.email.placeholder" />
+                </label>
+                <label><span data-i18n="contact.form.email2.label"></span>
+                  <input name="email2" type="email" required placeholder="" data-i18n-placeholder="contact.form.email2.placeholder" />
+                </label>
+                <label><span data-i18n="contact.form.body.label"></span>
+                  <textarea name="body" rows="6" required placeholder="" data-i18n-placeholder="contact.form.body.placeholder"></textarea>
+                </label>
+                <button class="primary" id="contactSubmit" type="button" data-i18n="contact.form.submit"></button>
+                <p class="muted" id="contactMsg" aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="staticFooter"></div>
+  </div>
+
+  <script defer src="/shogi-assets/static_shell.js?v=static-v10"></script>
+
+  <script defer src="/i18n/dom_i18n.js"></script>
+
+  <script defer src="/contact.js"></script>
+</body>
+</html>

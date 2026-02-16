@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === modal readability fixes === */
+@layer base {
+  :root {
+    --panel-bg: #ffffff;
+    --panel-border: rgba(0,0,0,0.12);
+    --scrim: rgba(0,0,0,0.5);
+  }
+  [data-theme="dark"] & {
+    /* if your app toggles data-theme at :root, the below may be overridden;
+       keep simple defaults here */
+  }
+}
+
+@layer components {
+  /* Make overlay consistent and inner panel fully opaque */
+  [data-slot="dialog-overlay"],
+  [data-slot="alert-dialog-overlay"] {
+    background: var(--scrim) !important;
+  }
+
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"] {
+    background: var(--panel-bg) !important;
+    border-color: var(--panel-border) !important;
+  }
+
+  /* === Shogi board: possible move indicator (blinking circle) === */
+  .shogi-possible-move-indicator {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 6;
+  }
+
+  .shogi-possible-move-indicator::before,
+  .shogi-possible-move-indicator::after {
+    content: "";
+    position: absolute;
+    width: clamp(10px, 35%, 22px);
+    height: clamp(10px, 35%, 22px);
+    border-radius: 9999px;
+  }
+
+  /* inner dot */
+  .shogi-possible-move-indicator::before {
+    border: 2px solid rgba(16, 185, 129, 0.85);
+    background: rgba(16, 185, 129, 0.14);
+    animation: shogi-move-dot-blink 1.05s ease-in-out infinite;
+  }
+
+  /* outer pulse ring */
+  .shogi-possible-move-indicator::after {
+    border: 2px solid rgba(16, 185, 129, 0.35);
+    animation: shogi-move-dot-ping 1.35s ease-out infinite;
+  }
+
+  /* === Shogi board: last move indicator (blinking red circle) === */
+  .shogi-last-move-indicator {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Slightly below the green possible-move indicator, but above pieces */
+    z-index: 5;
+  }
+
+  .shogi-last-move-indicator::before,
+  .shogi-last-move-indicator::after {
+    content: "";
+    position: absolute;
+    width: clamp(10px, 35%, 22px);
+    height: clamp(10px, 35%, 22px);
+    border-radius: 9999px;
+  }
+
+  /* inner dot */
+  .shogi-last-move-indicator::before {
+    border: 2px solid rgba(239, 68, 68, 0.85);
+    background: rgba(239, 68, 68, 0.14);
+    animation: shogi-move-dot-blink 1.05s ease-in-out infinite;
+  }
+
+  /* outer pulse ring */
+  .shogi-last-move-indicator::after {
+    border: 2px solid rgba(239, 68, 68, 0.35);
+    animation: shogi-move-dot-ping 1.35s ease-out infinite;
+  }
+
+
+  /* === Shogi board: next mainline move arrow (review) === */
+  .shogi-next-mainline-arrow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 7;
+  }
+
+  .shogi-next-mainline-arrow path {
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.38));
+    opacity: 0.78;
+    animation: shogi-next-mainline-arrow-pulse 1.25s ease-in-out infinite;
+  }
+
+  .shogi-next-mainline-arrow.is-drop path {
+    stroke-dasharray: 9 7;
+  }
+
+  /* === Shogi board: best move line (review) === */
+  .shogi-bestmove-line {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+  }
+
+  .shogi-bestmove-line path {
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.34));
+    opacity: 0.72;
+  }
+
+  .shogi-bestmove-line.is-drop path {
+    stroke-dasharray: 8 6;
+  }
+
+  /* === Game screen: disable text / range selection ===
+     NOTE: allow selection inside form controls for typing/copy. */
+  .game-no-select,
+  .game-no-select * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+  }
+
+  .game-no-select input,
+  .game-no-select textarea,
+  .game-no-select select,
+  .game-no-select [contenteditable="true"],
+  .game-no-select [contenteditable="true"] * {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-user-drag: auto;
+  }
+
+/* === Shogi board: drag ghost piece (Pointer Events) === */
+.shogi-drag-ghost-piece {
+  opacity: 0.86;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.75)) brightness(1.12) saturate(1.15);
+}
+}
+/* === end modal readability fixes === */
+
+@keyframes shogi-move-dot-blink {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shogi-move-dot-ping {
+  0% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}

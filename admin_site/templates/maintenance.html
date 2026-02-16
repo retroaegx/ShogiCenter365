@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>メンテナンスモード</title>
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Yu Gothic", sans-serif; background:#f3f4f6; }
+    .wrap { min-height: 100vh; display:flex; align-items:flex-start; justify-content:center; padding:24px; }
+    .card { width: min(860px, 100%); background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; box-shadow: 0 10px 30px rgba(0,0,0,.08); padding:20px; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    .row { display:flex; gap: 12px; flex-wrap: wrap; align-items:center; }
+    .btn { display:inline-block; text-decoration:none; padding: 10px 12px; border-radius: 12px; border:1px solid rgba(0,0,0,.12); color:#111827; font-weight:700; background: #fff; }
+    .btn:hover { background:#f9fafb; }
+    .muted { opacity:.75; font-size: 12px; }
+    .badge { display:inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; border: 1px solid rgba(0,0,0,.12); }
+    .ok { background:#ecfdf5; }
+    .warn { background:#fff7ed; }
+    .box { margin-top: 14px; border: 1px solid rgba(0,0,0,.10); border-radius: 12px; padding: 12px; background:#fafafa; }
+    label { display:block; font-weight: 700; margin-top: 10px; }
+    input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,.15); }
+    .help { font-size: 12px; opacity:.75; }
+    .actions { margin-top: 14px; display:flex; gap: 10px; align-items:center; }
+    .primary { background:#111827; color:#fff; border-color:#111827; }
+    .primary:hover { background:#0b1220; }
+    .notice { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background:#eff6ff; border:1px solid rgba(59,130,246,.35); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <h1>メンテナンスモード</h1>
+        <div class="row">
+          <a class="btn" href="{{ url_for('menu') }}">メニューへ</a>
+          <a class="btn" href="{{ url_for('logout') }}">ログアウト</a>
+        </div>
+      </div>
+
+      {% if request.args.get('saved') %}
+        <div class="notice">
+          保存しました。
+          {% if request.args.get('canceled_ou') %}
+            （解除: 申請待ち {{ request.args.get('canceled_ou') }} 件 / legacy offers {{ request.args.get('canceled_offers') }} 件）
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="box">
+        <div class="row">
+          <div>
+            現在の状態:
+            {% if enabled %}
+              <span class="badge warn">ON</span>
+            {% else %}
+              <span class="badge ok">OFF</span>
+            {% endif %}
+          </div>
+          <div class="muted">最終更新: {{ updated_at or '—' }}</div>
+          <div class="muted">申請待ち(解除対象)の件数: {{ pending_count }}</div>
+        </div>
+        <div class="muted" style="margin-top: 10px; line-height: 1.6;">
+          ON の間は、対局待ち開始 / 対局申請 / 申請承認(対局開始) をブロックします。既存の対局は継続します。
+          ON に切り替えた瞬間に、既存の「対局申請待ち」は解除されます。
+        </div>
+      </div>
+
+      <form method="post" action="{{ url_for('admin_maintenance_post') }}" style="margin-top: 14px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <label>
+          <input type="checkbox" name="enabled" value="1" {% if enabled %}checked{% endif %} />
+          メンテナンスモードを有効にする
+        </label>
+        <div class="help">チェックを入れると ON / 外すと OFF です。</div>
+
+        <label>メッセージ（任意）</label>
+        <input type="text" name="message" value="{{ message }}" placeholder="例: 01:00 までメンテナンス" />
+        <div class="help">クライアントへ返すメッセージです（空ならデフォルト）。</div>
+
+        <div class="actions">
+          <button class="btn primary" type="submit">保存</button>
+          <span class="muted">※ON に切り替えると申請待ちは解除されます</span>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</body>
+</html>

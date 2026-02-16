@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ page_title }}</title>
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Yu Gothic", sans-serif; background:#f3f4f6; }
+    .wrap { padding: 24px; max-width: 1040px; margin: 0 auto; }
+    .card { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; box-shadow: 0 10px 30px rgba(0,0,0,.08); padding:18px; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    label { display:block; font-size: 13px; opacity: .85; margin: 12px 0 6px; }
+    input[type="text"] { width:100%; padding: 12px 12px; border:1px solid rgba(0,0,0,.18); border-radius: 12px; font-size: 15px; }
+    .row { display:flex; gap: 10px; align-items:center; margin-top: 12px; }
+    .row input[type="checkbox"] { width:auto; }
+    .actions { display:flex; gap: 10px; justify-content:flex-end; margin-top: 14px; flex-wrap: wrap; }
+    button, a.btn { padding: 11px 14px; border-radius: 12px; border:1px solid rgba(0,0,0,.12); background:#111827; color:#fff; font-weight:700; font-size: 14px; cursor:pointer; text-decoration:none; }
+    a.btn { background:#fff; color:#111827; }
+    .danger { background:#b91c1c !important; border-color:#b91c1c !important; color:#fff !important; }
+    .err { margin-top: 10px; color:#b91c1c; font-size: 13px; }
+    .ok { margin-top: 10px; color:#047857; font-size: 13px; }
+    .hint { margin-top: 8px; font-size: 12px; opacity: .75; line-height: 1.55; }
+
+    /* Editor.js surface */
+    #editorjs {
+      background: rgba(17,24,39,.03);
+      border: 1px solid rgba(0,0,0,.12);
+      border-radius: 14px;
+      padding: 14px 12px;
+      min-height: 380px;
+    }
+    .ce-block__content, .ce-toolbar__content { max-width: 920px; }
+    .ce-paragraph { font-size: 15px; line-height: 1.8; }
+    .ce-header { padding: 0.2em 0; }
+    .ce-header[data-level="2"]{ font-size: 22px; }
+    .ce-header[data-level="3"]{ font-size: 18px; }
+    .cdx-list__item { line-height: 1.7; }
+
+    /* Make drag handle easier to grab */
+    .ce-toolbar__actions { right: 6px; }
+    .ce-toolbar__settings-btn, .ce-toolbar__plus { transform: scale(1.05); }
+
+    /* Image block */
+    .image-tool__image img { border-radius: 12px; border: 1px solid rgba(0,0,0,.12); }
+    .image-tool__caption { font-size: 13px; opacity: .75; }
+
+    /* Reduce "powered by" noise */
+    .codex-editor__redactor { padding-bottom: 32px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; gap: 10px; align-items:center; flex-wrap: wrap;">
+        <h1>{{ heading }}</h1>
+        <div style="display:flex; gap:10px;">
+          <a class="btn" href="{{ url_for('menu') }}">メニューへ</a>
+          <a class="btn" href="{{ url_for('list_posts') }}">一覧へ</a>
+        </div>
+      </div>
+
+      <form id="postForm" method="post" action="{{ form_action }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>タイトル</label>
+        <input name="title" value="{{ title or '' }}" required maxlength="120" />
+
+        <label>本文</label>
+        <div id="editorjs"></div>
+        <div class="hint">+ ボタンで段落/見出し/箇条書き/画像を追加。ドラッグで順番を変えられるよ。</div>
+
+        <input type="hidden" name="content_json" id="content_json" />
+
+        <div class="row">
+          <input id="published" type="checkbox" name="published" value="1" {% if published %}checked{% endif %} />
+          <label for="published" style="margin:0;">公開する</label>
+        </div>
+
+        <div class="actions">
+          {% if public_url %}
+            <a class="btn" href="{{ public_url }}" target="_blank" rel="noopener">公開ページを開く</a>
+          {% endif %}
+          {% if delete_url %}
+            <form method="post" action="{{ delete_url }}" style="display:inline;" onsubmit="return confirm('この記事を削除しますか？（元に戻せません）');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit" class="btn danger">削除</button>
+            </form>
+          {% endif %}
+          <a class="btn" href="{{ url_for('menu') }}">戻る</a>
+          <button type="button" id="saveBtn">保存</button>
+        </div>
+
+        {% if error %}<div class="err">{{ error }}</div>{% endif %}
+        {% if ok %}<div class="ok">{{ ok }}</div>{% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Editor.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.30.6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@1.9.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/image@2.10.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@1.4.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/editorjs-drag-drop@1.1.14"></script>
+
+  <script>
+  (function(){
+    const initialData = {{ initial_data|tojson }};
+
+    async function uploadImage(file){
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('{{ url_for("api_upload") }}', {
+        method: 'POST',
+        body: fd,
+        headers: {'X-CSRF-Token': '{{ csrf_token }}'},
+        credentials: 'same-origin'
+      });
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error('upload failed: ' + res.status + ' ' + txt);
+      }
+      const j = await res.json();
+      if(!j || !j.success){
+        throw new Error('upload failed');
+      }
+      return j;
+    }
+
+    const editor = new EditorJS({
+      holder: 'editorjs',
+      placeholder: 'ここに本文を入力',
+      data: initialData,
+      tools: {
+        header: {
+          class: Header,
+          config: {
+            levels: [2, 3],
+            defaultLevel: 2
+          }
+        },
+        list: {
+          class: List,
+          inlineToolbar: true
+        },
+        delimiter: Delimiter,
+        image: {
+          class: ImageTool,
+          config: {
+            captionPlaceholder: 'キャプション（任意）',
+            uploader: {
+              uploadByFile: async (file) => {
+                return await uploadImage(file);
+              }
+            }
+          }
+        }
+      }
+    });
+
+    try{ new DragDrop(editor); }catch(e){}
+
+    const form = document.getElementById('postForm');
+    const btn = document.getElementById('saveBtn');
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+      try{
+        const out = await editor.save();
+        document.getElementById('content_json').value = JSON.stringify(out);
+        form.submit();
+      }catch(e){
+        alert('保存に失敗しました: ' + (e && e.message ? e.message : e));
+      }finally{
+        btn.disabled = false;
+        btn.textContent = '保存';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

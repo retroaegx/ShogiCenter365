@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja" data-i18n-title="requirements.documentTitle">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v7" />
+  <title></title>
+
+  <style>
+    body.shogi-static-body .shogi-static .callout{
+      border-left: 4px solid var(--accent);
+      background: rgba(255,255,255,.70);
+      border: 1px solid var(--paper-line);
+      border-left-width: 4px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin: 12px 0 14px;
+    }
+    body.shogi-static-body .shogi-static .callout strong{ display:block; }
+    body.shogi-static-body .shogi-static .callout .muted{ margin-top: 6px; }
+
+    body.shogi-static-body .shogi-static .section-title{
+      margin: 22px 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--paper-line);
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    body.shogi-static-body .shogi-static .spec-table{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--paper-line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255,255,255,.72);
+      margin: 10px 0 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.06);
+    }
+    body.shogi-static-body .shogi-static .spec-table th,
+    body.shogi-static-body .shogi-static .spec-table td{
+      padding: 10px 12px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--paper-line);
+    }
+    body.shogi-static-body .shogi-static .spec-table tr:last-child th,
+    body.shogi-static-body .shogi-static .spec-table tr:last-child td{
+      border-bottom: 0;
+    }
+    body.shogi-static-body .shogi-static .spec-table th{
+      text-align: left;
+      font-weight: 900;
+      color: var(--ink);
+      width: 34%;
+      background: rgba(255,255,255,.86);
+    }
+    body.shogi-static-body .shogi-static .spec-table td{
+      color: var(--ink);
+    }
+    body.shogi-static-body .shogi-static .chip{
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      border: 1px solid var(--paper-line);
+      background: rgba(255,255,255,.86);
+      font-weight: 900;
+      margin: 2px 6px 2px 0;
+      white-space: nowrap;
+    }
+    body.shogi-static-body .shogi-static .chips{ margin-top: 6px; }
+
+    body.shogi-static-body .shogi-static a.pill-btn{
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 9999px;
+      border: 1px solid var(--paper-line);
+      background: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-weight: 900;
+      color: #000;
+    }
+    body.shogi-static-body .shogi-static a.pill-btn:hover,
+    body.shogi-static-body .shogi-static a.pill-btn:focus{
+      text-decoration: underline;
+      outline: none;
+    }
+  </style>
+</head>
+
+<body class="shogi-static-body">
+  <div class="shogi-static">
+    <div id="staticHeader"></div>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <div class="paper-pane page-pane">
+            <header class="page-head">
+              <h1 class="page-title" data-i18n="requirements.h1"></h1>
+              <p class="page-desc" data-i18n="requirements.desc"></p>
+            </header>
+
+            <div class="page-body" data-i18n-html="requirements.body"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="staticFooter"></div>
+  </div>
+
+  <script defer src="/shogi-assets/static_shell.js?v=static-v10"></script>
+
+  <script defer src="/i18n/dom_i18n.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+/*
+  Legacy entrypoint.
+  Static pages used to link "/styles.css".
+  All styles are now unified in "/shogi-assets/site.css?v=static-v7".
+*/
+
+@import url('/shogi-assets/site.css?v=static-v7');

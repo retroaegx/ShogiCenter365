@@ -1,0 +1,647 @@
+
+/* layout-fix-v15 (final) */
+html, body, #root { height: 100%; margin: 0; }
+body { overflow: auto !important; overscroll-behavior: none; }
+
+/* === Desktop scale (short height like 768p/720p): keep pages inside viewport without page scroll === */
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+  /* 900px-height で 16px、720px-height で 約 12.8px まで縮む */
+  html { font-size: clamp(12px, 1.78vh, 16px); }
+}
+
+@media (min-width: 769px) and (max-height: 760px) and (hover: hover) and (pointer: fine) {
+  /* さらに縦が厳しいときはヘッダー/フッターも少し圧縮 */
+  .site-header__inner { height: 3.5rem !important; }
+  .footer-bar > div { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+}
+
+
+/*
+  Mobile/Tablet の一部ブラウザでは 100vh / 100dvh の扱いが不安定で、
+  初回表示で対局UIの下側が切れることがある。
+
+  基本は CSS の svh/dvh を使いつつ、JS(App.jsx) が実行できる環境では
+  visualViewport/innerHeight から px を計算して --app-height を上書きする。
+*/
+:root { --app-height: 100svh; }
+@supports (height: 100dvh) { :root { --app-height: 100dvh; } }
+
+.app-root {
+  height: var(--app-height);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+}
+
+.site-header, .footer-bar { z-index: 30; }
+
+.site-main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.viewport-shell { flex: 1 1 auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; }
+.main-shell { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; }
+
+/* PC版: ヘッダー/フッター以外（メイン領域）を薄い黒でシェード */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .app-root.is-auth .site-main {
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+@media (min-width: 640px) {
+  .main-shell {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  /* 対局画面「拡大サイズ」用の横幅 */
+  .main-shell.main-shell-wide {
+    max-width: 80rem; /* 約1280px。必要なら数値を調整 */
+  }
+}
+
+/* PC(マウス操作想定): 最大幅と横幅割合をまとめて調整 */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  /*
+    - 横幅: 画面幅の 65%（=65vw）
+    - 最大値: 2048px
+    ※対局中は下の .app-root.is-game 側が !important で上書きする
+  */
+  .main-shell {
+    width: 65vw;
+    max-width: 2048px;
+  }
+  .main-shell.main-shell-wide {
+    max-width: 2048px;
+  }
+  .main-shell.main-shell-lobby {
+    max-width: 2048px;
+  }
+}
+
+/* 対局画面: 盤の表示サイズに合わせて横幅を切り替える
+   - 通常: 約60%（中央寄せ）
+   - 拡大: 100%
+   ※モバイルは既存の full-bleed（@media max-width:767px）を優先 */
+/* NOTE: iPad(タブレット)は min-width:768px を満たすため、PC用レイアウトは
+   pointer/hover で制限してタブレットには適用しない */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .app-root.is-game .main-shell {
+    width: 60% !important;
+    max-width: none !important;
+    margin: 0 auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .app-root.is-game .main-shell.main-shell-wide {
+    width: 100% !important;
+  }
+}
+
+/* 対局画面ではフッターを表示しない（縦領域を最大化） */
+.app-root.is-game {
+  grid-template-rows: auto 1fr 0 !important;
+}
+.app-root.is-game .site-footer {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+/* 対局画面の「拡大サイズ」選択時は、盤＋ユーザーパネルが枠いっぱいまで広がるようにする */
+
+.lobby-root { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.lobby-controls { position: sticky; top: 0; z-index: 10; }
+
+.user-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+
+/* modal overlay & body lock */
+.modal-overlay { position: fixed; inset: 0; display: grid; place-items: center;
+  background: rgba(15, 15, 15, 0.35); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  pointer-events: auto; }
+.modal-center { max-width: 28rem; width: calc(100% - 2rem); margin: 0 1rem; }
+body.modal-open { overflow: hidden !important; }
+.site-header, .footer-bar { z-index: 30; } /* overlay is z-50 */
+
+
+/* === mobile game full-bleed adjustments === */
+@media (max-width: 768px) {
+  /* hide footer only on game screen */
+  .app-root.is-game .footer-bar { display: none !important; }
+  /* remove extra paddings in main containers */
+  .app-root.is-game .viewport-shell { padding: 0 !important; }
+  .app-root.is-game .main-shell { padding: 0 !important; }
+  .app-root.is-game .game-mobile-shell { padding: 0 !important; margin: 0 !important; }
+  /* ensure board container can use full width */
+  .app-root.is-game .shogi-merge, 
+  .app-root.is-game .card-like,
+  .app-root.is-game .shogi-board-container { margin: 0 !important; }
+}
+
+
+/* === stronger mobile footer & layout rules for game === */
+@media (max-width: 768px) {
+  .app-root.is-game { grid-template-rows: auto 1fr 0 !important; }
+  .app-root.is-game .footer-bar { display: none !important; height: 0 !important; padding: 0 !important; margin: 0 !important; border: 0 !important; }
+}
+
+
+
+/* footer padding tweak */
+.app-root .site-footer{padding:0 !important;}
+.footer-bar{padding-bottom:env(safe-area-inset-bottom) !important;}
+
+/* === game viewport ===
+   .app-root は header / main(1fr) / footer の3行グリッド。
+   対局画面では footer を CSS で非表示(0行)にしているので、
+   main 行は常に「ヘッダーを除いた残り高さ」になる。
+
+   ここで 100dvh からヘッダー高さを引く計算をすると、
+   初回描画タイミングの CSS 変数未反映・丸め誤差で
+   "下段UIが画面外に押し出される" ことがあるため、
+   高さは親(グリッド/フレックス)に委ねて 100% を使う。
+*/
+.game-viewport{ height: 100%; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+
+/* === kifu search viewport: header+footer を引いた残り ===
+   - ページ全体は 1 画面に収め、検索結果だけを枠内スクロールさせるための高さ固定。
+*/
+.kifu-viewport{ height: calc(var(--app-height) - var(--hdr,56px) - var(--ftr,56px)); min-height:0; }
+@supports not (height: 100dvh) {
+  .kifu-viewport{ height: calc(var(--app-height) - var(--hdr,56px) - var(--ftr,56px)); }
+}
+
+/* === kifu search (mobile): scroll only the filters layer ===
+   iPhone SE などの小さい画面で検索フォームが見切れないように、
+   フォーム部分だけを枠内スクロールさせる。
+   (結果側は ScrollArea で既に枠内スクロール)
+*/
+@media (max-width: 768px) {
+  .kifu-filters-card{
+    display:flex;
+    flex-direction:column;
+    flex:1 1 auto;
+    min-height:0;
+  }
+  .kifu-filters-body{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    touch-action:pan-y;
+  }
+}
+
+/* game 内の flex 分配が効くように min-height だけ補助 */
+.game-grid{ min-height: 0; }
+.game-top{ min-height: 0; }
+
+/* === PATCH: keep original rules; only add safe scoped layout fixes === */
+
+/* Game viewport: keep consistent with the block above (no vh-calc) */
+.game-viewport{ height: 100%; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+
+/* 盤面(上) 8割 / 下段(チャット+観戦者) 2割
+   親が flex-col なので、子の .game-grid と .game-bottom に flex を付与して比率を決める。
+   (.game-grid の中身レイアウトには影響しない) */
+.game-grid{ flex: 4 1 0%; min-height: 0; }
+.game-bottom{ flex: 1 1 0%; min-height: 0; }
+
+/* 内部グリッドも高さを継承 */
+.game-bottom .grid{ height: 100%; min-height: 0; }
+
+/* スマホ(〜768px)の対局中はフッターを確実に隠す */
+@media (max-width: 768px){
+  .app-root.is-game .site-footer{ display: none !important; }
+}
+
+/*
+  操作バー（PCのみ）: 盤の表示サイズに連動して拡大
+  - 通常サイズ: 既存の1.5倍 (.game-opbar-scale-150)
+  - 拡大サイズ: 既存の2倍   (.game-opbar-scale-200)
+*/
+@media (hover: hover) and (pointer: fine) {
+  .app-root.is-game .game-opbar.game-opbar-scale-150,
+  .app-root.is-game .game-opbar.game-opbar-scale-200{
+    --opbar-scale: 1;
+    --opbar-btn: 2.25rem;         /* Button(sm)の高さ: 36px */
+    --opbar-icon: 1rem;           /* アイコン: 16px */
+    --opbar-icon-pad: 0.5rem;     /* アイコンボタン内側余白: 8px */
+    --opbar-gap: 0.5rem;          /* gap-2: 8px */
+    --opbar-px: 0.75rem;          /* px-3: 12px */
+    --opbar-py-compact: 0.375rem; /* py-1.5: 6px */
+    --opbar-toggle-h: 2rem;       /* h-8: 32px */
+    --opbar-toggle-px: 0.75rem;   /* px-3: 12px */
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150{ --opbar-scale: 1.5; }
+  .app-root.is-game .game-opbar.game-opbar-scale-200{ --opbar-scale: 2; }
+
+  /* Non-JA languages tend to have longer labels in the opbar. */
+  .app-root.is-game .game-opbar.game-opbar-i18n-tight.game-opbar-scale-150,
+  .app-root.is-game .game-opbar.game-opbar-i18n-tight.game-opbar-scale-200{
+    --opbar-gap: 0.375rem;       /* 6px */
+    --opbar-px: 0.5rem;          /* 8px */
+    --opbar-toggle-px: 0.5rem;  /* 8px */
+  }
+
+
+  .app-root.is-game .game-opbar.game-opbar-compact.game-opbar-scale-150,
+  .app-root.is-game .game-opbar.game-opbar-compact.game-opbar-scale-200{
+    padding: calc(var(--opbar-py-compact) * var(--opbar-scale)) calc(var(--opbar-px) * var(--opbar-scale)) !important;
+    gap: calc(var(--opbar-gap) * var(--opbar-scale)) !important;
+  }
+
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-icon,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-icon{
+    width: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    height: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    min-width: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    min-height: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    padding: calc(var(--opbar-icon-pad) * var(--opbar-scale)) !important;
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-icon img,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-icon img{
+    width: calc(var(--opbar-icon) * var(--opbar-scale)) !important;
+    height: calc(var(--opbar-icon) * var(--opbar-scale)) !important;
+  }
+
+  .app-root.is-game .game-opbar.game-opbar-scale-150 button:not(.game-op-icon):not([data-slot="switch"]):not([data-slot="checkbox"]),
+  .app-root.is-game .game-opbar.game-opbar-scale-200 button:not(.game-op-icon):not([data-slot="switch"]):not([data-slot="checkbox"]){
+    height: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    min-height: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    padding-inline: calc(0.75rem * var(--opbar-scale)) !important; /* px-3 */
+    font-size: calc(0.875rem * var(--opbar-scale)) !important;      /* text-sm */
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .opbar-move-count,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .opbar-move-count{
+    height: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    min-height: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    padding: calc(0.25rem * var(--opbar-scale)) calc(0.75rem * var(--opbar-scale)) !important; /* py-1 px-3 */
+    font-size: calc(0.875rem * var(--opbar-scale)) !important;
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .opbar-eval,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .opbar-eval{
+    font-size: calc(0.75rem * var(--opbar-scale)) !important; /* text-xs */
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .opbar-size-select,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .opbar-size-select{
+    height: calc(var(--opbar-btn) * var(--opbar-scale)) !important;
+    padding: calc(0.25rem * var(--opbar-scale)) calc(0.5rem * var(--opbar-scale)) !important; /* py-1 px-2 */
+    font-size: calc(0.875rem * var(--opbar-scale)) !important;
+  }
+
+  .app-root.is-game .game-opbar.game-opbar-i18n-tight.game-opbar-scale-150 .opbar-size-select,
+  .app-root.is-game .game-opbar.game-opbar-i18n-tight.game-opbar-scale-200 .opbar-size-select{
+    font-size: calc(0.75rem * var(--opbar-scale)) !important;
+    padding: calc(0.25rem * var(--opbar-scale)) calc(0.375rem * var(--opbar-scale)) !important; /* py-1 px-1.5 */
+  }
+
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle{
+    height: calc(var(--opbar-toggle-h) * var(--opbar-scale)) !important;
+    padding-inline: calc(var(--opbar-toggle-px) * var(--opbar-scale)) !important;
+    gap: calc(var(--opbar-gap) * var(--opbar-scale)) !important;
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle label,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle label{
+    font-size: calc(0.75rem * var(--opbar-scale)) !important; /* text-xs */
+  }
+
+  .app-root.is-game .game-opbar.game-opbar-i18n-tight.game-opbar-scale-150 .game-op-toggle label,
+  .app-root.is-game .game-opbar.game-opbar-i18n-tight.game-opbar-scale-200 .game-op-toggle label{
+    font-size: calc(0.625rem * var(--opbar-scale)) !important;
+    letter-spacing: -0.01em !important;
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle [data-slot="checkbox"],
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle [data-slot="checkbox"]{
+    width: calc(1rem * var(--opbar-scale)) !important;
+    height: calc(1rem * var(--opbar-scale)) !important;
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle [data-slot="checkbox-indicator"] svg,
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle [data-slot="checkbox-indicator"] svg{
+    width: calc(0.875rem * var(--opbar-scale)) !important;
+    height: calc(0.875rem * var(--opbar-scale)) !important;
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle [data-slot="switch"],
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle [data-slot="switch"]{
+    width: calc(2.75rem * var(--opbar-scale)) !important; /* w-11 */
+    height: calc(1.5rem * var(--opbar-scale)) !important; /* h-6 */
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle [data-slot="switch-thumb"],
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle [data-slot="switch-thumb"]{
+    width: calc(1.25rem * var(--opbar-scale)) !important; /* w-5 */
+    height: calc(1.25rem * var(--opbar-scale)) !important; /* h-5 */
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle [data-slot="switch-thumb"][data-state="checked"],
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle [data-slot="switch-thumb"][data-state="checked"]{
+    transform: translateX(calc(1.25rem * var(--opbar-scale))) !important;
+  }
+  .app-root.is-game .game-opbar.game-opbar-scale-150 .game-op-toggle [data-slot="switch-thumb"][data-state="unchecked"],
+  .app-root.is-game .game-opbar.game-opbar-scale-200 .game-op-toggle [data-slot="switch-thumb"][data-state="unchecked"]{
+    transform: translateX(0) !important;
+  }
+}
+
+/* === mobile header compaction & captured-title tweak (ChatGPT v21) === */
+@media (max-width: 768px){
+  /* 名前(R)+手番 と 持ち時間を1行にまとめる */
+  .user-header-block{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:0.25rem;
+  }
+  .user-header-block .user-line1{
+    display:inline-flex;
+    align-items:center;
+    gap:0.25rem !important;
+    margin-right:0.25rem;
+  }
+  .user-header-block .user-line2{
+    display:inline !important;
+    margin-top:0 !important;
+  }
+  .user-times{
+    font-size:0.75rem !important;
+    line-height:1.25rem !important;
+    white-space:nowrap;
+  }
+  /* 「持ち駒」ラベルはスマホでは非表示 */
+  .user-captured-title{
+    display:none !important;
+  }
+  /* 2行目の / などが縦に折れないように */
+  .game-mobile-shell .user-line2 span{
+    display:inline !important;
+  }
+  .game-mobile-shell .user-line2 .mx-1{
+    display:inline !important;
+  }
+
+  /* 盤まわりの余白を詰める */
+  .game-mobile-shell .py-2{
+    padding-top:0 !important;
+    padding-bottom:0 !important;
+  }
+  .game-mobile-shell .sticky.top-0.z-20.mb-2{
+    margin-bottom:0 !important;
+  }
+  .game-mobile-shell .mt-3{
+    margin-top:0 !important;
+  }
+  .game-mobile-shell .space-y-4 > :not([hidden]) ~ :not([hidden]){
+    margin-top:0 !important;
+    margin-bottom:0 !important;
+  }
+}
+
+
+
+/* === tablet portrait (>=768px等): sb-portrait-sides-active のときはモバイル同等に圧縮する === */
+html.sb-portrait-sides-active .user-header-block{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:0.25rem;
+}
+html.sb-portrait-sides-active .user-header-block .user-line1{
+  display:inline-flex;
+  align-items:center;
+  gap:0.25rem !important;
+  margin-right:0.25rem;
+}
+html.sb-portrait-sides-active .user-header-block .user-line2{
+  display:inline !important;
+  margin-top:0 !important;
+}
+html.sb-portrait-sides-active .user-times{
+  font-size:0.75rem !important;
+  line-height:1.25rem !important;
+  white-space:nowrap;
+}
+html.sb-portrait-sides-active .user-captured-title{
+  display:none !important;
+}
+html.sb-portrait-sides-active .user-line2 span{
+  display:inline !important;
+}
+html.sb-portrait-sides-active .user-line2 .mx-1{
+  display:inline !important;
+}
+
+/* タブレット縦: 持ち駒リストは1段固定で横スクロール（高さを圧縮） */
+html.sb-portrait-sides-active .user-captured-piece-list{
+  flex: 0 0 auto !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  align-items: center !important;
+  -webkit-overflow-scrolling: touch;
+}
+html.sb-portrait-sides-active .user-captured-piece-empty{
+  white-space: nowrap;
+  padding-inline: 0.25rem;
+}
+
+/* パネル自体も少し詰める */
+html.sb-portrait-sides-active .sb-user-panel{
+  padding: 0.5rem !important;
+}
+
+/* === desktop: center board + side user panels vertically in the top area === */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine){
+  .game-grid{
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:flex-start !important; /* iPad Safari/Chrome may match hover/fine and would center vertically */
+  }
+}
+
+/* === tablet (iPad portrait): 盤を最大化しつつ、ユーザーパネルを左右(左上/右下)に重ねる === */
+.sb-tablet-sides{
+  position: relative;
+}
+.sb-tablet-sides .sb-tablet-overlay{
+  position:absolute;
+  z-index: 20;
+  pointer-events:none;
+}
+.sb-tablet-sides .sb-tablet-overlay > .user-panel{
+  pointer-events:auto;
+  max-height: 28vh;
+  overflow:auto;
+}
+.sb-tablet-sides .sb-tablet-overlay-top{
+  top: 8px;
+  left: 8px;
+  width: clamp(120px, 28vw, 180px);
+}
+.sb-tablet-sides .sb-tablet-overlay-bottom{
+  bottom: 8px;
+  right: 8px;
+  width: clamp(120px, 28vw, 180px);
+}
+
+/* === extra small phones (SE 等) 用の集中モード & さらにコンパクトなヘッダー === */
+@media (max-width: 480px){
+  /* 対局中はサイトヘッダーを非表示にして盤に高さをあげる */
+  .app-root.is-game .site-header{
+    display:none !important;
+  }
+
+  /* 情報バーをさらにコンパクトに */
+  .game-mobile-shell .user-panel{
+    padding:0.25rem 0.5rem !important;
+  }
+  .game-mobile-shell .user-line1 > span{
+    font-size:0.70rem !important;
+  }
+  .game-mobile-shell .user-line2{
+    font-size:0.65rem !important;
+  }
+  .game-mobile-shell .user-line1 .ml-1{
+    margin-left:0.15rem !important;
+  }
+}
+
+/* === v23: extra-small in-game toolbar & menu (right-top) === */
+@media (max-width: 480px){
+  .mini-game-toolbar{
+    position:absolute;
+    top:0.25rem;
+    right:0.25rem;
+    z-index:40;
+    display:flex;
+    gap:0.25rem;
+  }
+  .mini-game-toolbar__btn{
+    padding-inline:0.5rem !important;
+    height:1.75rem !important;
+  }
+  .mini-game-menu{
+    position:absolute;
+    top:2.25rem;
+    right:0.25rem;
+    z-index:40;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.60);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.16);
+    min-width: 9.5rem;
+  }
+}
+
+
+/* v24: hide in-game mini toolbar/menu by default (enabled only on very small screens) */
+.mini-game-toolbar,
+.mini-game-menu{
+  display:none;
+}
+
+
+/* v24: show mini toolbar/menu only on extra-small screens */
+@media (max-width: 480px){
+  .mini-game-toolbar{
+    display:flex;
+  }
+  .mini-game-menu{
+    display:block;
+  }
+}
+
+
+/* === v28: captured pieces stable height + iPhone SE2 compact tweaks ===
+   - 持ち駒なし/ありでユーザーパネル高さが変わるのを防ぐ（操作バーがズレない）
+   - サイズ縮小は iPhone SE2 相当(<=480px)のみ
+*/
+@media (max-width: 768px){
+  .user-captured-piece-list{
+    flex: 0 0 auto !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    align-items: center !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .user-captured-piece-empty{
+    white-space: nowrap;
+    padding-inline: 0.25rem;
+  }
+}
+
+@media (max-width: 480px){
+  /* 持ち駒: 32pxで止める（タップできる下限のつもり） */
+  .user-captured-piece-list{
+    height: 34px !important;
+    min-height: 34px !important;
+    gap: 2px !important;
+  }
+  .user-captured-piece-button{
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important; /* 四角の中の余白を消す */
+  }
+  .user-captured-piece-count{
+    font-size: 9px !important;
+    padding: 0 4px !important;
+  }
+
+  /* 操作バー: アイコン周りだけ少し詰める（PC/通常スマホには影響させない） */
+  .app-root.is-game .game-opbar{
+    padding: 0.25rem 0.5rem !important; /* px-2 py-1 相当 */
+  }
+  .app-root.is-game .game-op-icon{
+    padding: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+  .app-root.is-game .game-op-icon img{
+    width: 14px !important;
+    height: 14px !important;
+  }
+}
+
+/*
+  Touch devices: 操作バー(game-opbar)の上に、トグル/チェックの影やリングが
+  "突き破る" ように見えることがある。
+  - overflow で確実にクリップ
+  - isolate/contain で合成レイヤーを安定化
+  ※hover: none + pointer: coarse でスマホ(縦/横)を拾う
+*/
+@media (hover: none) and (pointer: coarse) {
+  .app-root.is-game .game-opbar{
+    position: relative !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+    contain: paint !important;
+  }
+}
+
+/* iOS Safari: backdrop-filter + 角丸の合成バグ対策（必要なブラウザだけ追加で mask） */
+@supports (-webkit-touch-callout: none) {
+  .app-root.is-game .game-opbar{
+    -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+            mask-image: radial-gradient(white, black) !important;
+  }
+}

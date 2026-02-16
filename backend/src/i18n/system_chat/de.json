@@ -1,0 +1,7 @@
+{
+  "system_username": "System",
+  "game_end_win": "Die Partie ist beendet. {winner} gewinnt.",
+  "game_end_draw": "Die Partie ist beendet. Unentschieden.",
+  "player_reconnected": "{name} hat die Verbindung wiederhergestellt.",
+  "player_disconnected": "{name} hat die Verbindung getrennt. (verbleibende Kulanz: {remaining})"
+}

@@ -1,0 +1,280 @@
+将棋センター365 / backend 仕様書（詳細）
+
+0. このファイルについて
+- 目的: backend（サーバ側）の「役割」「構成」「API/WS 契約」「永続化/時間管理」を実装に沿って整理します。
+- 対象: backend/src および ルートの起動スクリプト（dev.py, serve_eventlet.py, engine_server.py, admin_server.py）。
+
+1. 役割（責務の分担）
+- REST API（/api/*）
+  - 認証（JWT 発行・メール認証・パスワードリセット・Googleログイン）
+  - ユーザー（プロフィール/設定）
+  - ロビー（オンライン一覧、待ち状態、対局申込/オファー、招待リンク、時間設定）
+  - 対局（状態取得、指し手、投了、観戦導線）
+  - 棋譜（検索/詳細）
+  - 公開（ブログ閲覧API、問い合わせ送信）
+- WebSocket（Socket.IO）
+  - 対局中の双方向同期（game_update / make_move / chat / spectators）
+  - ロビー通知（online_users_update / lobby_offer_update 等）
+- 永続化
+  - MongoDB を主。失敗時は簡易 in-memory にフォールバック（src/models/database.py）。
+- 時間管理（対局の切れ負け・秒読み）
+  - game_doc.time_state を基準にサーバで厳格判定し、Redis スケジューラ/ワーカーで締切チェックを補助します。
+- 解析（エンジン）
+  - engine_server.py（FastAPI）を子プロセスで起動し、解析結果を WS で配信します（有効時）。
+
+2. プロセス構成（起動単位）
+2.1 メインサーバ（Flask + Socket.IO）
+- backend/src/main.py が Flask アプリと Socket.IO を初期化します。
+- eventlet を前提に起動されます（dev.py / serve_eventlet.py が monkey_patch）。
+
+2.2 解析サーバ（FastAPI, engine_server.py）
+- /analyze HTTP API を提供します。
+- YaneuraOu + Hao（nn.bin）を engine/ 配下に置く前提の実装です。
+- ENGINE_SERVER_ENABLED=1 のとき、起動スクリプトが子プロセスとして立ち上げます。
+
+2.3 管理サイト（admin_server.py）
+- LAN 内向けのブログ投稿管理（Editor.js）を提供します。
+- ADMIN_SITE_ALLOWED_CIDRS によりアクセス元を制限します（ALLOW_REMOTE を許可しない限り外部公開しない想定）。
+
+3. 起動方法（実装に沿った実運用）
+3.1 開発起動（ルート直下 dev.py）
+- dev.py は .env を読み、DEV_* のみを “無印” 環境変数に写します（PROD_* は無視）。
+- 代表:
+  - DEV_HOST → HOST
+  - DEV_PORT → PORT
+  - DEV_SECRET_KEY → SECRET_KEY
+  - DEV_JWT_SECRET_KEY → JWT_SECRET_KEY
+  - DEV_MONGODB_URI → MONGODB_URI
+  - DEV_REDIS_URL → REDIS_URL
+  - DEV_CORS_ORIGINS → CORS_ORIGINS / SOCKETIO_CORS_ALLOWED_ORIGINS
+- さらに engine/admin の起動制御や SMTP 等も DEV_* から写します（dev.py の set_from_dev 呼び出し参照）。
+- 起動例:
+  - python dev.py
+  - （別途）frontend は pnpm dev でもよいが、本番同様に dist 配信でもよい
+
+3.2 本番起動（ルート直下 serve_eventlet.py）
+- serve_eventlet.py は PROD_* のみを “無印” に写します（DEV_* は無視）。
+- socketio.run(debug=False) で起動します。
+
+3.3 フロント配信
+- backend/src/main.py は dist を探索し、存在すればそれを配信します。
+- dist の候補は以下（順に探索）:
+  - SHOGI_FRONT_DIST
+  - frontend/shogi-frontend/dist
+  - frontend/dist
+- Vite dev サーバへのフォールバックも実装されていますが、dev.py/serve_eventlet.py では無効化する設計（DISABLE_VITE_FALLBACK=1）。
+
+4. 設定（環境変数）一覧（主要）
+※ 値そのもの（秘密情報）はここに書かない。キー名と意味だけ整理。
+
+4.1 基本
+- HOST / PORT: メインサーバの bind / listen
+- SECRET_KEY: Flask セッション等の鍵
+- JWT_SECRET_KEY: JWT 署名鍵
+- FRONTEND_URL: メール内リンク生成等に使用
+- CORS_ORIGINS, SOCKETIO_CORS_ALLOWED_ORIGINS: CORS/Socket.IO 許可 origin
+
+4.2 DB/Queue
+- MONGODB_URI: MongoDB 接続 URI
+- REDIS_URL: Redis 接続 URL（Socket.IO message_queue / timeout/analysis queue に利用）
+
+4.3 解析（engine_server.py）
+- ENGINE_SERVER_ENABLED: 1=子プロセス起動, 0=起動しない
+- ENGINE_SERVER_BIND / ENGINE_SERVER_PORT: 解析サーバの bind/port
+- ENGINE_SERVER_URL: メインサーバが解析HTTPを叩くURL（例: http://127.0.0.1:5002/analyze）
+- ENGINE_THINK_SECONDS: デフォルト解析秒
+- ENGINE_MULTIPV: 解析候補数
+- ENGINE_HTTP_TIMEOUT_SEC: HTTP タイムアウト
+- YANEO_*: エンジン実体の探索（engine ディレクトリ/バイナリ/評価関数/スレッド数/Hash等）
+
+4.4 管理サイト（admin_server.py）
+- ADMIN_SITE_ENABLED: 1=起動
+- ADMIN_SITE_BIND / ADMIN_SITE_PORT: bind/port
+- ADMIN_SITE_ALLOWED_CIDRS: 許可 CIDR のリスト
+- ADMIN_SITE_USERNAME / ADMIN_SITE_PASSWORD: 管理ログイン
+- ADMIN_SITE_TRUST_PROXY, ADMIN_SITE_ALLOW_REMOTE など: 逆プロキシ/外部許可の挙動
+
+4.5 メール（問い合わせ・認証）
+- REQUIRE_EMAIL_VERIFICATION: メール認証必須化のフラグ
+- SMTP_SERVER / SMTP_PORT / SMTP_USERNAME / SMTP_SENDER_EMAIL / SMTP_SENDER_PASSWORD / SMTP_SENDER_NAME
+- SMTP_USE_SSL / SMTP_USE_STARTTLS / SMTP_TIMEOUT_SEC
+- CONTACT_RECEIVER_EMAIL: 問い合わせの受信先
+
+4.6 ルール/時間/レート（src/config.py）
+- TIME_CONTROLS: time_code ごとの初期/秒読み/加算/猶予（秒）
+- TIMEOUT_GRACE_SECONDS: タイムアウト判定の猶予秒
+- DEFAULT_RATING_SYSTEM / RATING_SYSTEMS: レーティング計算プロファイル
+
+5. 永続化（MongoDB コレクションの概略）
+5.1 users
+- 認証/プロフィール
+- 代表フィールド（例）:
+  - _id
+  - username, email, email_verified
+  - password_hash / argon2 hash
+  - rating, games_played, wins/losses など（実装の更新箇所に依存）
+  - google 関連情報（Googleログイン経由のユーザー識別に利用）
+
+5.2 games
+- 対局の主データ
+- 代表フィールド（例）:
+  - status: active / finished
+  - players: sente/gote（user_id/username 等）
+  - start_sfen: 開始局面（SFEN）
+  - move_history: 指し手履歴（USI の配列）
+  - sfen: 現局面（必要に応じて更新）
+  - time_state: 時間管理の状態（ms 単位の bucket 構造）
+  - spectators: 観戦者配列（user_id/username）
+  - chat_messages: 直近メッセージ（最大100程度にスライス）
+  - winner / loser / finished_reason
+  - analysis_*: 解析スナップショット（有効時）
+
+5.3 offers
+- ロビーの対局申込（送信/受信/承諾/拒否/取消）
+- 状態遷移と通知（lobby_offer_update）が主。
+
+5.4 online_users
+- ロビーの presence（待ち状態・最終活動時刻）
+- waiting: lobby / seeking / applying / in_game / spectating 等（実装に合わせて変化）
+- waiting_info: 時間設定、レート条件など付随情報
+
+5.5 blog_posts（管理サイト）
+- admin_server.py が作成/編集
+- backend/src/routes/blog_public.py が公開用に整形・サニタイズして配信
+
+6. REST API（HTTP）概要（主要）
+※ url_prefix は main.py の blueprint 登録に従う。
+
+6.1 /api/auth/*（routes/auth.py）
+- POST /register
+  - body: { username, email, password, ... }
+  - 成功: access_token 等
+- POST /login
+  - body: { username or email, password }
+- GET|POST /verify-email
+  - token を検証して email_verified を更新
+- POST /resend-verification
+- POST /request-password-reset
+- POST /reset-password
+- POST /guest
+- POST /google
+- POST /google/complete
+- 互換: /token, /refresh, /refresh_token, /rotate 等
+
+6.2 /api/user/*（routes/user.py）
+- GET  /profile
+- PUT  /settings
+- POST /refresh
+
+6.3 /api/lobby/*（routes/lobby.py + offers_store.py + lobby_presence.py）
+- GET  /online-users
+  - ロビー内の一覧（waiting 状態やレートなどを返す）
+- POST /waiting/start, /waiting/stop（待ち開始/停止）
+- POST /join-by-user
+  - body 例: { opponent_user_id, time_code, ... }
+  - 相手が seeking の場合に対局開始へ遷移（presence を race-safe に更新）
+- POST /offer/accept, /offer/decline, /offer/cancel
+- POST /touch, /active
+  - last_seen 更新、状態復帰などの補助
+- POST /invite/create, GET /invite/<token>
+  - 招待リンク発行/取得
+- GET  /time-controls
+  - TIME_CONTROLS を返す
+
+- （offers_store.py）
+  - POST /offers/create
+  - GET  /offers/pending
+  - POST /offers/accept|decline|cancel
+
+6.4 /api/game/*（routes/game.py）
+- GET  /<game_id>
+  - 対局状態スナップショット（as_api_payload）
+- POST /<game_id>/move
+  - body: { usi: "7g7f", ... }（usi を正とする）
+- POST /<game_id>/resign
+- POST /spectate-by-user
+  - body: { user_id } など。対象ユーザーの対局を見つけて game_id を返す。
+
+6.5 /api/kifu/*（routes/kifu.py）
+- GET /search（ページング/フィルタ）
+- GET /<game_id>（棋譜詳細）
+- 互換: /api/game/<id>/kifu
+
+6.6 /api/public/*（routes/blog_public.py）
+- GET  /api/public/blog/latest（直近の公開記事）
+- GET  /blog/<post_id>（HTMLページ）
+- POST /api/public/contact（問い合わせ送信: SMTP 経由）
+
+7. Socket.IO（WebSocket）仕様（backend/src/utils/websocket_manager.py）
+7.1 認証
+- connect の auth で token を受け取り decode（flask_jwt_extended.decode_token）
+- user_id が取れれば user:<user_id> へ join
+
+7.2 主要イベント（受信→送信の流れ）
+- whoami → whoami（同名で応答）
+- ping → pong
+- join_lobby / leave_lobby
+  - lobby ルームへ join/leave
+- join_game
+  - 受信: { game_id }（id/room 互換あり）
+  - 参加者でなければ spectators として登録し、spectators_update をブロードキャスト
+  - 応答: joined_game, game_update（必要に応じて analysis_update も）
+- leave_game
+  - 退出処理（spectator の除去等を含む）
+- chat_message
+  - 受信: { game_id, text }
+  - 送信: chat_message（game ルームへ broadcast）
+  - 保存: game_doc.chat_messages に push（最大100）
+  - 再接続/遅延参加向け: chat_history を送る仕組みあり
+- make_move
+  - 受信: { game_id, usi, ... }
+  - 返答: move_result（送信者 sid へ）
+  - broadcast: game:move（簡易）、game_update（room 全員へ）
+  - タイムアウト厳格化: 先に check_and_finish_timeout を走らせ、期限切れなら move を拒否
+- resign
+  - 受信: { game_id }
+  - game_update / game:finished の通知や presence 更新が走る
+
+7.3 ルーム名規約
+- lobby
+- game:<game_id>
+- user:<user_id>
+
+8. 対局ロジック（GameService: backend/src/services/game_service.py）
+8.1 盤面表現
+- start_sfen（開始局面）と move_history（USI）の履歴が主。
+- make_move は usi を正とし、内部で from/to/drop/piece_type へ展開して検証します。
+
+8.2 時間管理（time_state）
+- time_state は ms 単位で初期/秒読み/猶予/加算など複数 bucket を持つ構造へ統一されます。
+- legacy 形式が混在していても _ensure_clock_fields で変換します。
+- ターン更新時にサーバが残時間/期限を計算し、RedisTimeoutScheduler へ deadline を登録します。
+- 期限到来は RedisTimeoutWorker が監視し、必要に応じて finish_game を呼びます。
+
+8.3 終局処理
+- finish_game:
+  - game_doc を finished に更新し、winner/loser/reason を記録
+  - game_update / game:finished を emit
+  - presence（online_users）を review/disconnect などに更新（状況に応じて）
+  - post_game_updates（レーティング反映）を“一度だけ”適用する仕組みあり
+
+9. 解析フロー（有効時）
+- analysis_queue（Redis またはローカルQueue）
+  - 解析要求を積み、redis_analysis_worker が取り出す
+- engine_server.py /analyze
+  - request: { sfen, moves[], think_seconds, multipv }
+  - response: bestmove, main_score_cp/mate, main_pv, multipv[], ...
+- 解析結果は analysis_update として WS 配信され、必要に応じて game_doc に保存されます。
+
+10. ブログ/問い合わせ（公開・管理）
+- admin_server.py
+  - 投稿作成/編集/画像アップロード（Editor.js）
+  - CIDR 制限 + セッションログイン
+- blog_public.py
+  - Editor.js の JSON をサニタイズし、公開ページ/最新記事APIを提供
+  - 問い合わせは SMTP 経由で送信（設定がない場合の挙動は load_smtp_config に依存）
+
+11. 開発/保守上の注意
+- eventlet monkey_patch 前提のため、ブロッキングI/O を増やす変更は慎重に行う
+- WS と HTTP の“二重実装”を増やしすぎない（クライアントの分岐が増える）
+- 仕様変更（payload/イベント名/DBフィールド）は frontend/SPEC.txt と必ず同期する

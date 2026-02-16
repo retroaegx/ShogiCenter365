@@ -1,0 +1,511 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { loadBoardTheme } from '@/config/themeLoader';
+import {
+  PIECE_NAMES,
+  PLAYERS,
+  getPossibleMoves,
+  getDropMoves,
+  canPromote,
+  mustPromote,
+  makeMove,
+  makeDrop,
+} from '@/utils/shogiLogic';
+
+const formatMsToMMSS = (ms) => {
+  const s = Math.max(0, Math.floor((ms || 0) / 1000));
+  const m = Math.floor(s / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return `${m}:${ss}`;
+};
+
+function normalizeTheme(raw) {
+  if (!raw) return null;
+  const t = raw.theme ?? raw;
+  const background =
+    typeof t.background === 'string'
+      ? t.background
+      : (t.background && (t.background.path || t.background.url)) || null;
+  let board_region = t.board_region ?? t.boardRegion ?? null;
+  if (board_region && board_region.start && board_region.end) {
+    board_region = {
+      x: Number(board_region.start.x),
+      y: Number(board_region.start.y),
+      width: Number(board_region.end.x) - Number(board_region.start.x),
+      height: Number(board_region.end.y) - Number(board_region.start.y),
+    };
+  }
+  const coordinates = t.coordinates ?? {};
+  const pieces = t.pieces ?? t.piece_images ?? t.images ?? {};
+  return { background, board_region, coordinates, pieces };
+}
+
+function computeGeometry(theme, bgNatural, boardSize) {
+  if (!theme || !theme.background || !theme.board_region) return null;
+  const r = theme.board_region;
+  const naturalW = Number(bgNatural.w || 0);
+  const naturalH = Number(bgNatural.h || 0);
+  if (!(naturalW > 0 && naturalH > 0)) return null;
+  const scale = boardSize / Number(r.width || 1);
+  const bgw = Math.round(naturalW * scale);
+  const bgh = Math.round(naturalH * scale);
+  const offsetLeft = Math.round(Number(r.x || 0) * scale);
+  const offsetTop = Math.round(Number(r.y || 0) * scale);
+  const cellPx = boardSize / 9;
+  return { bgw, bgh, offsetLeft, offsetTop, targetBoardPx: boardSize, cellPx };
+}
+
+const ShogiBoard = ({
+  gameState,
+  onMove,
+  showCoordinates,
+  onToggleCoordinates,
+  isSpectator = false,
+  currentUser,
+  timeState = null,
+  className = '',
+  onRequestClose,
+  sizeMode = 'normal',
+  boardSize = 480,
+}) => {
+  const [boardTheme, setBoardTheme] = useState(null);
+  const [bgNatural, setBgNatural] = useState({ w: 0, h: 0 });
+  const [boardFlipped, setBoardFlipped] = useState(false);
+  const [selectedSquare, setSelectedSquare] = useState(null);
+  const [selectedCapturedPiece, setSelectedCapturedPiece] = useState(null);
+  const [possibleMoves, setPossibleMoves] = useState([]);
+  const [lastMove, setLastMove] = useState(null);
+  const [internalShowCoordinates, setInternalShowCoordinates] = useState(true);
+
+  const showCoord = typeof showCoordinates === 'boolean' ? showCoordinates : internalShowCoordinates;
+  const toggleCoord = onToggleCoordinates || (() => setInternalShowCoordinates((v) => !v));
+
+  // load theme
+  useEffect(() => {
+    let alive = true;
+    loadBoardTheme()
+      .then((t) => {
+        if (!alive) return;
+        setBoardTheme(normalizeTheme(t));
+      })
+      .catch((e) => {
+        console.error('loadBoardTheme failed', e);
+        setBoardTheme(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // load background natural size
+  useEffect(() => {
+    const src = boardTheme?.background;
+    if (!src) {
+      setBgNatural({ w: 0, h: 0 });
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setBgNatural({ w: img.naturalWidth || 0, h: img.naturalHeight || 0 });
+    img.onerror = () => setBgNatural({ w: -1, h: -1 });
+    img.src = src;
+  }, [boardTheme?.background]);
+
+  // flip if current user is gote
+  useEffect(() => {
+    if (!isSpectator && currentUser && gameState?.players) {
+      const my = currentUser?.user_id;
+      const gote = gameState.players?.gote?.user_id;
+      setBoardFlipped(my != null && gote != null && String(my) === String(gote));
+    }
+  }, [isSpectator, currentUser, gameState?.players]);
+
+  // last move highlight
+  useEffect(() => {
+    try {
+      const hist = Array.isArray(gameState?.move_history) ? gameState.move_history : [];
+      if (hist.length > 0) {
+        const m = hist[hist.length - 1] || {};
+        const fromRow = m.from_row ?? m.fromRow ?? m.from?.row;
+        const fromCol = m.from_col ?? m.fromCol ?? m.from?.col;
+        const toRow = m.to_row ?? m.toRow ?? m.to?.row;
+        const toCol = m.to_col ?? m.toCol ?? m.to?.col;
+        const ok = [fromRow, fromCol, toRow, toCol].every((v) => Number.isInteger(v));
+        if (ok) setLastMove({ fromRow, fromCol, toRow, toCol });
+      }
+    } catch {}
+  }, [gameState?.move_history?.length]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedSquare(null);
+    setSelectedCapturedPiece(null);
+    setPossibleMoves([]);
+  }, []);
+
+  const { board = [], capturedPieces = {}, currentPlayer } = gameState || {};
+
+  const myRole = useMemo(() => {
+    try {
+      const me = currentUser?.user_id != null ? String(currentUser.user_id) : null;
+      const s = gameState?.players?.sente?.user_id != null ? String(gameState.players.sente.user_id) : null;
+      const g = gameState?.players?.gote?.user_id != null ? String(gameState.players.gote.user_id) : null;
+      if (me && s && me === s) return 'sente';
+      if (me && g && me === g) return 'gote';
+    } catch {}
+    return null;
+  }, [currentUser?.user_id, gameState?.players]);
+
+  const isMyTurn = !isSpectator && !!myRole && currentPlayer === myRole;
+
+  const getBoardRows = useCallback(() => {
+    const arr = [];
+    for (let i = 0; i < 9; i++) arr.push(boardFlipped ? 8 - i : i);
+    return arr;
+  }, [boardFlipped]);
+  const getBoardCols = useCallback(() => {
+    const arr = [];
+    for (let i = 0; i < 9; i++) arr.push(boardFlipped ? 8 - i : i);
+    return arr;
+  }, [boardFlipped]);
+
+  const handleSquareClick = useCallback(
+    (row, col) => {
+      if (!isMyTurn) return;
+      const piece = board?.[row]?.[col];
+
+      if (selectedCapturedPiece) {
+        const dropMoves = getDropMoves(board, selectedCapturedPiece.piece, currentPlayer);
+        const valid = dropMoves.find((m) => m.row === row && m.col === col);
+        if (valid) {
+          const res = makeDrop(gameState, row, col, selectedCapturedPiece.piece);
+          if (res.success) {
+            onMove({ is_drop: true, piece_type: selectedCapturedPiece.piece, to_row: row, to_col: col });
+            clearSelection();
+          }
+        } else {
+          clearSelection();
+        }
+        return;
+      }
+
+      if (selectedSquare) {
+        const { row: fr, col: fc } = selectedSquare;
+        const selectedPiece = board?.[fr]?.[fc];
+        if (fr === row && fc === col) {
+          clearSelection();
+          return;
+        }
+        const valid = possibleMoves.find((m) => m.row === row && m.col === col);
+        if (valid) {
+          if (canPromote(selectedPiece, fr, row) && !mustPromote(selectedPiece, row)) {
+            const promote = window.confirm('成りますか�E�E);
+            const res = makeMove(gameState, fr, fc, row, col, !!promote);
+            if (res.success) onMove({ from_row: fr, from_col: fc, to_row: row, to_col: col, promote: !!promote });
+          } else {
+            const promote = mustPromote(selectedPiece, row);
+            const res = makeMove(gameState, fr, fc, row, col, promote);
+            if (res.success) onMove({ from_row: fr, from_col: fc, to_row: row, to_col: col, promote });
+          }
+          clearSelection();
+        } else if (piece && piece.owner === currentPlayer) {
+          setSelectedSquare({ row, col });
+          setSelectedCapturedPiece(null);
+          setPossibleMoves(getPossibleMoves(board, row, col, piece));
+        } else {
+          clearSelection();
+        }
+        return;
+      }
+
+      if (piece && piece.owner === currentPlayer) {
+        setSelectedSquare({ row, col });
+        setSelectedCapturedPiece(null);
+        setPossibleMoves(getPossibleMoves(board, row, col, piece));
+      }
+    },
+    [isMyTurn, board, selectedCapturedPiece, selectedSquare, possibleMoves, currentPlayer, gameState, onMove, clearSelection]
+  );
+
+  const handleCapturedPieceClick = useCallback(
+    (pieceType, owner) => {
+      if (!isMyTurn || owner !== currentPlayer) return;
+      if (selectedCapturedPiece?.piece === pieceType) {
+        clearSelection();
+        return;
+      }
+      setSelectedSquare(null);
+      setSelectedCapturedPiece({ piece: pieceType, owner });
+      setPossibleMoves(getDropMoves(board, pieceType, currentPlayer));
+    },
+    [isMyTurn, currentPlayer, selectedCapturedPiece, board, clearSelection]
+  );
+
+  const renderSquareOverlay = (row, col) => {
+    const isSelected = selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
+    const isPossibleMove = possibleMoves.some((move) => move.row === row && move.col === col);
+    const isLastMove =
+      lastMove &&
+      ((lastMove.fromRow === row && lastMove.fromCol === col) ||
+        (lastMove.toRow === row && lastMove.toCol === col));
+    let style = null;
+    if (isSelected) style = { backgroundColor: 'rgba(59,130,246,0.35)' };
+    else if (isPossibleMove) style = { backgroundColor: 'rgba(16,185,129,0.25)' };
+    else if (isLastMove) style = { backgroundColor: 'rgba(234,179,8,0.30)' };
+    if (!style) return null;
+    return <div className="absolute inset-0 pointer-events-none" style={{ ...style, zIndex: 3 }} />;
+  };
+
+  const renderPiece = (piece) => {
+    if (!piece) return null;
+    const isGote = piece.owner === PLAYERS.GOTE || piece.owner === 'gote';
+    const rotation = (boardFlipped ? !isGote : isGote) ? 'rotate-180' : '';
+    const rawKey = (piece.piece || piece.type || '').toString();
+    const norm = rawKey.toLowerCase();
+    const pmap = boardTheme?.pieces || {};
+    let url = null;
+    if (pmap && (pmap.sente || pmap.gote)) {
+      url = isGote ? pmap.gote?.[norm] ?? pmap.sente?.[norm] ?? null : pmap.sente?.[norm] ?? pmap.gote?.[norm] ?? null;
+    } else if (pmap) {
+      url = pmap[norm] || null;
+    }
+    if (url) {
+      return (
+        <img
+          src={url}
+          alt={norm}
+          style={{ width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }}
+          className={`${rotation} pointer-events-none`}
+          draggable={false}
+        />
+      );
+    }
+    return (
+      <span className={`${rotation} ${isGote ? 'text-red-600' : 'text-blue-600'}`}>
+        {PIECE_NAMES[piece.piece] || PIECE_NAMES[piece.type] || '�E�E}
+      </span>
+    );
+  };
+
+  const PlayerHeader = ({ owner }) => {
+    const player = owner === PLAYERS.SENTE ? gameState?.players?.sente : gameState?.players?.gote;
+    const rating = player?.rating ?? player?.elo ?? null;
+    const isSente = owner === PLAYERS.SENTE;
+    const isMyTurnLocal = currentPlayer === owner;
+    const msLeft = isSente ? timeState?.sente_time_left ?? 0 : timeState?.gote_time_left ?? 0;
+    return (
+      <div className="user-header-block">
+        <div className="user-line1 flex items-center gap-2">
+          <span
+            className={
+              owner === PLAYERS.SENTE
+                ? 'px-2 py-0.5 rounded-md bg-blue-100 text-blue-700'
+                : 'px-2 py-0.5 rounded-md bg-red-100 text-red-700'
+            }
+          >
+            {player?.username || (isSente ? '先手' : '後手')}
+            {typeof rating === 'number' ? ` R ${rating}` : ''}
+          </span>
+          {isMyTurnLocal && <Badge variant="default" className="ml-1">手番</Badge>}
+        </div>
+        <div className="user-line2 user-times font-mono text-xs leading-5 mt-1">
+          残り {formatMsToMMSS(msLeft)}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCaptured = (owner) => {
+    const pieces = capturedPieces?.[owner] || {};
+    const isBottom = (owner === PLAYERS.SENTE && !boardFlipped) || (owner === PLAYERS.GOTE && boardFlipped);
+    return (
+      <div className={`user-panel p-3 bg-gray-50 rounded-lg w-full min-h-0 flex flex-col md:h-1/2 min-h-0 flex flex-col ${isBottom ? 'text-right' : ''} relative`}>
+        <PlayerHeader owner={owner} />
+        <div className="user-captured-title text-xs text-slate-500 mt-2 mb-1">持ち駁E/div>
+        <div className={`flex flex-wrap gap-1 flex-1 min-h-0 overflow-auto ${isBottom ? 'justify-end' : ''}`}>
+          {Object.entries(pieces).map(([pieceType, count]) => (
+            <Button
+              key={pieceType}
+              variant="outline"
+              size="sm"
+              className={`h-8 px-2 ${selectedCapturedPiece?.piece === pieceType && selectedCapturedPiece?.owner === owner ? 'bg-blue-200' : ''}`}
+              onClick={() => handleCapturedPieceClick(pieceType, owner)}
+              disabled={!isMyTurn || owner !== currentPlayer}
+            >
+              {PIECE_NAMES[pieceType]} {count > 1 && count}
+            </Button>
+          ))}
+          {Object.keys(pieces).length === 0 && <span className="text-gray-400 text-sm">持ち駒なぁE/span>}
+        </div>
+      </div>
+    );
+  };
+
+  const geom = useMemo(() => computeGeometry(boardTheme, bgNatural, boardSize), [boardTheme, bgNatural.w, bgNatural.h, boardSize]);
+  const cellSize = geom?.cellPx ?? (boardSize / 9);
+  const piecePad = Math.max(0, Math.floor(cellSize * 0.06));
+  const boardPx = geom?.targetBoardPx ?? (cellSize * 9);
+
+  const coords = boardTheme?.coordinates || {};
+  const showVLeft = ((coords?.outside?.left ?? true) !== false) && !!showCoord;
+  const showVRight = (!!coords?.outside?.right) && !!showCoord;
+  const labelThick = showCoord ? 26 : 0;
+
+  return (
+    <div className={`flex flex-col space-y-4 ${className}`} style={{ minHeight: 0 }}>
+      <div className="grid grid-cols-1 gap-0 md:gap-6 md:grid-cols-[200px_1fr_200px] md:items-stretch md:justify-center w-full h-full min-h-0">
+        <div className="order-1 md:order-none md:flex md:flex-col md:justify-start h-full">
+          {renderCaptured(boardFlipped ? PLAYERS.SENTE : PLAYERS.GOTE)}
+        </div>
+
+        <div className="order-2 md:order-none md:justify-self-center w-full h-full flex min-h-0 flex-1">
+          <Card className="!m-0 !p-0 md:!p-4 !border-0 !shadow-none !rounded-none md:!border md:!shadow-sm md:!rounded-xl w-full h-full min-h-0 flex-1">
+            <CardContent className="!p-0 md:!p-4 w-full h-full min-h-0 flex-1">
+              <div className="relative h-full min-h-0 overflow-hidden">
+                <div
+                  className="grid w-full"
+                  style={{ gridTemplateRows: `${labelThick}px auto`, gridTemplateColumns: `${showVLeft ? `${labelThick}px ` : ''}1fr${showVRight ? ` ${labelThick}px` : ''}`, gap: 0 }}
+                >
+                  <div style={{ gridRow: 1, gridColumn: '1 / -1', position: 'relative', visibility: showCoord ? 'visible' : 'hidden' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        paddingLeft: showVLeft ? labelThick : 0,
+                        paddingRight: showVRight ? labelThick : 0,
+                        gridTemplateColumns: 'repeat(9, 1fr)',
+                        justifyItems: 'center',
+                        height: labelThick,
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        position: 'relative',
+                        zIndex: 1,
+                      }}
+                    >
+                      {Array.from({ length: 9 }, (_, i) => 9 - i).map((n) => (
+                        <div
+                          key={n}
+                          style={{
+                            width: cellSize,
+                            height: labelThick,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            color: coords?.color || '#4b5563',
+                          }}
+                        >
+                          {n}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {showVLeft && (
+                    <div style={{ display: showCoord ? 'grid' : 'none', width: labelThick, gridRow: 2, gridColumn: 1, gridTemplateRows: 'repeat(9, 1fr)', position: 'relative', height: boardPx, boxSizing: 'border-box' }}>
+                      {['一', '亁E, '丁E, '囁E, '亁E, '六', '丁E, '八', '乁E].map((ch, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            width: labelThick,
+                            height: cellSize,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            color: coords?.color || '#4b5563',
+                            position: 'relative',
+                            zIndex: 1,
+                          }}
+                        >
+                          {ch}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {showVRight && (
+                    <div style={{ display: showCoord ? 'grid' : 'none', gridRow: 2, gridColumn: showVLeft ? 3 : 2, gridTemplateRows: 'repeat(9, 1fr)', position: 'relative', width: labelThick, height: boardPx, boxSizing: 'border-box' }}>
+                      {['一', '亁E, '丁E, '囁E, '亁E, '六', '丁E, '八', '乁E].map((ch, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            width: labelThick,
+                            height: cellSize,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            color: coords?.color || '#4b5563',
+                            position: 'relative',
+                            zIndex: 1,
+                          }}
+                        >
+                          {ch}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ gridRow: 2, gridColumn: showVLeft ? 2 : 1, position: 'relative' }}>
+                    {geom && (
+                      <div style={{ position: 'relative', width: '100%', height: geom ? geom.bgh : 'auto' }}>
+                        <img
+                          src={boardTheme?.background}
+                          alt="board background"
+                          draggable={false}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'fill',
+                            pointerEvents: 'none',
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: geom.offsetLeft,
+                            top: geom.offsetTop,
+                            width: boardPx,
+                            height: boardPx,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {getBoardRows().map((row) => (
+                            <div key={row} className="flex">
+                              {getBoardCols().map((col) => (
+                                <div
+                                  key={`${row}-${col}`}
+                                  className="relative flex items-center justify-center text-sm font-bold cursor-pointer transition-colors"
+                                  style={{ width: cellSize, height: cellSize }}
+                                  onClick={() => handleSquareClick(row, col)}
+                                >
+                                  {renderSquareOverlay(row, col)}
+                                  <div style={{ position: 'relative', zIndex: 4, width: Math.max(0, cellSize - 2 * piecePad), height: Math.max(0, cellSize - 2 * piecePad), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {renderPiece(board?.[row]?.[col])}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="order-3 md:order-none md:flex md:flex-col md:justify-end h-full">
+          {renderCaptured(boardFlipped ? PLAYERS.GOTE : PLAYERS.SENTE)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ShogiBoard;
+

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ja" data-i18n-title="rules.documentTitle">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/shogi-assets/site.css?v=static-v7" />
+  <title></title>
+
+  <style>
+    /* ページ固有の軽い整形（site.cssの雰囲気に寄せる） */
+    body.shogi-static-body .shogi-static .callout{
+      border-left: 4px solid var(--accent);
+      background: rgba(255,255,255,.70);
+      border: 1px solid var(--paper-line);
+      border-left-width: 4px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin: 12px 0 14px;
+    }
+    body.shogi-static-body .shogi-static .callout strong{ display:block; }
+    body.shogi-static-body .shogi-static .callout .muted{ margin-top: 6px; }
+
+    /* 左ペイン + 本文 */
+    body.shogi-static-body .shogi-static .rules-layout{
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+      margin-top: 10px;
+    }
+    body.shogi-static-body .shogi-static .rules-side{
+      position: sticky;
+      top: 92px;
+      background: rgba(255,255,255,.65);
+      border: 1px solid var(--paper-line);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.06);
+    }
+    body.shogi-static-body .shogi-static .rules-side .rules-nav{
+      display: grid;
+      gap: 10px;
+    }
+    body.shogi-static-body .shogi-static .rules-side a{
+      display: block;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--paper-line);
+      background: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-weight: 900;
+      color: #000;
+    }
+    body.shogi-static-body .shogi-static .rules-side a:hover,
+    body.shogi-static-body .shogi-static .rules-side a:focus{
+      text-decoration: underline;
+      outline: none;
+    }
+
+    body.shogi-static-body .shogi-static .rules-table{
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--paper-line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255,255,255,.65);
+      box-shadow: 0 8px 20px rgba(0,0,0,.06);
+      margin: 10px 0 8px;
+    }
+    body.shogi-static-body .shogi-static .rules-table th,
+    body.shogi-static-body .shogi-static .rules-table td{
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--paper-line);
+      vertical-align: top;
+    }
+    body.shogi-static-body .shogi-static .rules-table th{
+      text-align: left;
+      font-weight: 900;
+      background: rgba(255,255,255,.85);
+    }
+    body.shogi-static-body .shogi-static .rules-table tr:last-child td{ border-bottom: 0; }
+    body.shogi-static-body .shogi-static .table-wrap{ overflow-x: auto; }
+
+    body.shogi-static-body .shogi-static .section-title{
+      margin: 22px 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--paper-line);
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--ink);
+    }
+    body.shogi-static-body .shogi-static .subhead{
+      margin: 14px 0 6px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    body.shogi-static-body .shogi-static .pill-row{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    body.shogi-static-body .shogi-static a.pill-btn{
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 9999px;
+      border: 1px solid var(--paper-line);
+      background: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-weight: 900;
+      color: #000;
+    }
+    body.shogi-static-body .shogi-static a.pill-btn:hover,
+    body.shogi-static-body .shogi-static a.pill-btn:focus{
+      text-decoration: underline;
+      outline: none;
+    }
+
+    @media (max-width: 900px){
+      body.shogi-static-body .shogi-static .rules-layout{
+        grid-template-columns: 1fr;
+      }
+      body.shogi-static-body .shogi-static .rules-side{
+        position: relative;
+        top: auto;
+      }
+      body.shogi-static-body .shogi-static .rules-side .rules-nav{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      body.shogi-static-body .shogi-static .rules-side a{
+        display: inline-block;
+      }
+    }
+  </style>
+</head>
+<body class="shogi-static-body">
+  <div class="shogi-static">
+    <div id="staticHeader"></div>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <div class="paper-pane page-pane">
+            <header class="page-head">
+              <h1 class="page-title" data-i18n="rules.h1"></h1>
+              <p class="page-desc" data-i18n="rules.desc"></p>
+            </header>
+
+            <div class="page-body">
+              <div class="rules-layout">
+                <aside class="rules-side" aria-label="" data-i18n-aria-label="rules.side.aria">
+                  <nav class="rules-nav">
+                    <a href="#about" data-i18n="rules.side.about"></a>
+                    <a href="#rules" data-i18n="rules.side.rules"></a>
+                  </nav>
+                </aside>
+
+                <div class="rules-main">
+                  <section id="about" aria-label="" data-i18n-aria-label="rules.about.aria">
+                    <h2 class="section-title" data-i18n="rules.about.title"></h2>
+                    <div class="callout" role="note" aria-label="" data-i18n-aria-label="rules.callout.aria">
+                      <strong data-i18n="rules.callout.title"></strong>
+                      <div class="muted" data-i18n="rules.callout.body"></div>
+                    </div>
+                    <p data-i18n="rules.about.p1"></p>
+                    <ul class="plain-list">
+                      <li data-i18n-html="rules.about.li1"></li>
+                      <li data-i18n="rules.about.li2"></li>
+                      <li data-i18n-html="rules.about.li3"></li>
+                    </ul>
+                    <div class="pill-row" aria-label="" data-i18n-aria-label="rules.about.reco.aria">
+                      <a class="pill-btn" href="https://81dojo.com/" target="_blank" rel="noopener noreferrer" data-i18n="rules.about.reco.81dojo"></a>
+                      <a class="pill-btn" href="https://lishogi.org/" target="_blank" rel="noopener noreferrer" data-i18n="rules.about.reco.lishogi"></a>
+                    </div>
+
+                    <h3 class="subhead" data-i18n="rules.about.notes.title"></h3>
+                    <div class="callout" role="note" aria-label="" data-i18n-aria-label="rules.about.notes.callout.aria">
+                      <strong data-i18n="rules.about.notes.callout.title"></strong>
+                      <div class="muted" data-i18n="rules.about.notes.callout.body"></div>
+                    </div>
+                    <ul class="plain-list">
+                      <li data-i18n="rules.about.notes.li1"></li>
+                      <li data-i18n="rules.about.notes.li2"></li>
+                    </ul>
+                  </section>
+
+                  <section id="rules" aria-label="" data-i18n-aria-label="rules.rules.aria">
+                    <h2 class="section-title" data-i18n="rules.rules.title"></h2>
+                    <p data-i18n="rules.rules.p1"></p>
+
+                    <h3 class="subhead" data-i18n="rules.rules.basic"></h3>
+                    <ul class="plain-list">
+                      <li data-i18n="rules.rules.basic.li1"></li>
+                      <li data-i18n="rules.rules.basic.li2"></li>
+                      <li data-i18n="rules.rules.basic.li3"></li>
+                    </ul>
+
+                    <h3 class="subhead" data-i18n="rules.rules.time.title"></h3>
+                    <p data-i18n="rules.rules.time.p1"></p>
+                    <div class="table-wrap">
+                      <table class="rules-table" aria-label="" data-i18n-aria-label="rules.rules.time.table.aria">
+                        <thead>
+                          <tr>
+                            <th data-i18n="rules.rules.time.table.th1"></th>
+                            <th data-i18n="rules.rules.time.table.th2"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td data-i18n="rules.rules.time.row.hayasashi.name"></td>
+                            <td data-i18n="rules.rules.time.row.hayasashi.desc"></td>
+                          </tr>
+                          <tr>
+                            <td data-i18n="rules.rules.time.row.hayasashi2.name"></td>
+                            <td data-i18n="rules.rules.time.row.hayasashi2.desc"></td>
+                          </tr>
+                          <tr>
+                            <td data-i18n="rules.rules.time.row.hayasashi3.name"></td>
+                            <td data-i18n="rules.rules.time.row.hayasashi3.desc"></td>
+                          </tr>
+                          <tr>
+                            <td data-i18n="rules.rules.time.row.15min.name"></td>
+                            <td data-i18n="rules.rules.time.row.15min.desc"></td>
+                          </tr>
+                          <tr>
+                            <td data-i18n="rules.rules.time.row.30min.name"></td>
+                            <td data-i18n="rules.rules.time.row.30min.desc"></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p class="muted" data-i18n="rules.rules.time.note"></p>
+
+                    <h3 class="subhead" data-i18n="rules.rules.nyugyoku.title"></h3>
+                    <p data-i18n="rules.rules.nyugyoku.p1"></p>
+                    <h4 class="subhead" data-i18n="rules.rules.nyugyoku.win.title"></h4>
+                    <p data-i18n="rules.rules.nyugyoku.win.p1"></p>
+                    <ul class="plain-list">
+                      <li data-i18n="rules.rules.nyugyoku.win.li1"></li>
+                      <li data-i18n="rules.rules.nyugyoku.win.li2"></li>
+                      <li data-i18n="rules.rules.nyugyoku.win.li3"></li>
+                    </ul>
+                    <h4 class="subhead" data-i18n="rules.rules.nyugyoku.low.title"></h4>
+                    <ul class="plain-list">
+                      <li data-i18n="rules.rules.nyugyoku.low.li1"></li>
+                    </ul>
+
+                    <h3 class="subhead" data-i18n="rules.rules.disconnect.title"></h3>
+                    <ul class="plain-list">
+                      <li data-i18n="rules.rules.disconnect.li1"></li>
+                      <li data-i18n="rules.rules.disconnect.li2"></li>
+                    </ul>
+
+                    <h3 class="subhead" data-i18n="rules.rules.draw.title"></h3>
+                    <ul class="plain-list">
+                      <li data-i18n="rules.rules.draw.li1"></li>
+                    </ul>
+
+                    <h3 class="subhead" data-i18n="rules.rules.trouble"></h3>
+                    <ul class="plain-list">
+                      <li data-i18n="rules.rules.trouble.li1"></li>
+                      <li data-i18n="rules.rules.trouble.li2"></li>
+                    </ul>
+
+                    <h3 class="subhead" data-i18n="rules.rules.chat"></h3>
+                    <ul class="plain-list">
+                      <li data-i18n-html="rules.rules.chat.li1"></li>
+                      <li data-i18n-html="rules.rules.chat.li2"></li>
+                    </ul>
+
+                    <h3 class="subhead" data-i18n="rules.rules.manners"></h3>
+                    <ul class="plain-list">
+                      <li data-i18n-html="rules.rules.manners.li1"></li>
+                    </ul>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="staticFooter"></div>
+  </div>
+
+  <script defer src="/shogi-assets/static_shell.js?v=static-v10"></script>
+
+  <script defer src="/i18n/dom_i18n.js"></script>
+</body>
+</html>
