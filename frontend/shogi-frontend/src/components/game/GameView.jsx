@@ -3062,14 +3062,38 @@ if (loading) {
 
 
 
+  // 解析グラフ: 現在表示中の盤（ローカル/共有盤）に合わせてカーソルを移動できるようにする。
+  // - 共有盤表示中は共有盤カーソルを更新（操作権限がある場合のみ）
+  // - 共有盤OFF時はローカル見返しカーソルを更新
   const selectMoveFromGraph = (moveNumber) => {
     try {
       if (!reviewEnabled) return;
       const n = Math.max(0, Math.min(totalMoves, parseInt(moveNumber, 10)));
       if (!Number.isFinite(n)) return;
+
+      if (isSharedViewActive) {
+        if (!canOperateShared) return;
+        setSharedCursor(n);
+        return;
+      }
       clearBranchAndSetReviewIndex(n);
     } catch {}
   };
+
+  // 解析グラフの赤線（現在位置）は、表示中の盤に合わせる。
+  // 共有盤の分岐で cursor が本譜の総手数を超える場合は、グラフ側は本譜の範囲までに収める。
+  const graphHighlightMove = (() => {
+    try {
+      const raw = isSharedViewActive ? sharedCursorClamped : reviewIndex;
+      const v = Number.isFinite(Number(raw)) ? Math.trunc(Number(raw)) : 0;
+      return Math.max(0, Math.min(totalMoves, v));
+    } catch {
+      return 0;
+    }
+  })();
+
+  // 共有盤表示中は、操作権限がない場合はグラフからの局面移動を無効化する。
+  const graphSelectEnabled = !!(reviewEnabled && (!isSharedViewActive || canOperateShared));
 
 
   return (
@@ -3736,12 +3760,12 @@ if (loading) {
                 <div className="w-full shrink-0 snap-start h-full overflow-hidden">
                   {isSe2Size ? (
                     <AnalysisBarCompact analysisDerived={analysisDerived} gameState={gameState} isFinished={isFinished} suppressBestDisplay={activeIsBranched} deriveStateFromHistory={deriveStateFromHistory} applyUsiToState={applyUsiToState} usiToKifMove={_usiToKifMove} extractAnalysisFromMove={_extractAnalysisFromMove} onOpenPvReplay={(pl) => { try { setPvReplayPayload(pl); setPvReplayOpen(true); } catch {} }}
-                      highlightMove={reviewIndex}
-                      onSelectMove={reviewEnabled ? selectMoveFromGraph : null}
+                      highlightMove={graphHighlightMove}
+                      onSelectMove={graphSelectEnabled ? selectMoveFromGraph : null}
                     />
                   ) : (
                     <div className="w-full h-full min-h-0 bg-white/70 backdrop-blur-sm rounded-2xl p-3 shadow-sm border border-white/80 flex flex-col">
-                      <AnalysisPanel analysisDerived={analysisDerived} gameState={gameState} isFinished={isFinished} suppressEvalDisplay={suppressEvalDisplay} suppressBestDisplay={activeIsBranched} deriveStateFromHistory={deriveStateFromHistory} applyUsiToState={applyUsiToState} usiToKifMove={_usiToKifMove} extractAnalysisFromMove={_extractAnalysisFromMove} formatEvalText={_formatEvalText} onOpenPvReplay={(pl) => { try { setPvReplayPayload(pl); setPvReplayOpen(true); } catch {} }} highlightMove={reviewIndex} onSelectMove={reviewEnabled ? selectMoveFromGraph : null} fillHeight={true} className="h-full flex flex-col min-h-0" />
+                      <AnalysisPanel analysisDerived={analysisDerived} gameState={gameState} isFinished={isFinished} suppressEvalDisplay={suppressEvalDisplay} suppressBestDisplay={activeIsBranched} deriveStateFromHistory={deriveStateFromHistory} applyUsiToState={applyUsiToState} usiToKifMove={_usiToKifMove} extractAnalysisFromMove={_extractAnalysisFromMove} formatEvalText={_formatEvalText} onOpenPvReplay={(pl) => { try { setPvReplayPayload(pl); setPvReplayOpen(true); } catch {} }} highlightMove={graphHighlightMove} onSelectMove={graphSelectEnabled ? selectMoveFromGraph : null} fillHeight={true} className="h-full flex flex-col min-h-0" />
                     </div>
                   )}
                 </div>
@@ -3927,9 +3951,9 @@ if (loading) {
                 </div>
               </div>
               <AnalysisPanel analysisDerived={analysisDerived} gameState={gameState} isFinished={isFinished} suppressEvalDisplay={suppressEvalDisplay} suppressBestDisplay={activeIsBranched} deriveStateFromHistory={deriveStateFromHistory} applyUsiToState={applyUsiToState} usiToKifMove={_usiToKifMove} extractAnalysisFromMove={_extractAnalysisFromMove} formatEvalText={_formatEvalText} onOpenPvReplay={(pl) => { try { setPvReplayPayload(pl); setPvReplayOpen(true); } catch {} }}
-                highlightMove={reviewIndex}
+                highlightMove={graphHighlightMove}
                 showHeader={false}
-                onSelectMove={reviewEnabled ? selectMoveFromGraph : null}
+                onSelectMove={graphSelectEnabled ? selectMoveFromGraph : null}
                 graphSize={analysisOverlayGraphSize}
               />
             </div>

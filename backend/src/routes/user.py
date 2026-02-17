@@ -180,6 +180,14 @@ def update_settings():
         merged["reviewDrawBestMove"] = settings["reviewDrawBestMove"]
         changed = True
 
+    # Last move visual effects (client-side UI only)
+    if isinstance(settings.get("lastMoveFromHighlightEnabled"), bool):
+        merged["lastMoveFromHighlightEnabled"] = settings["lastMoveFromHighlightEnabled"]
+        changed = True
+    if isinstance(settings.get("lastMovePieceHighlightEnabled"), bool):
+        merged["lastMovePieceHighlightEnabled"] = settings["lastMovePieceHighlightEnabled"]
+        changed = True
+
     swm = settings.get("shellWidthMode")
     if isinstance(swm, str):
         m = (swm or "").strip().lower()

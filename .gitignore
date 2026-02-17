@@ -33,6 +33,11 @@ frontend/shogi-frontend/public/country/*
 # frontend: board theme images (kept out of git; keep docs only)
 frontend/shogi-frontend/public/board-theme/images/*
 !frontend/shogi-frontend/public/board-theme/images/README.md
+
+blog_uploads/*.png
+frontend/shogi-frontend/public/distribute
+mongo_*.py
+
 # bot
 join_computer
 
