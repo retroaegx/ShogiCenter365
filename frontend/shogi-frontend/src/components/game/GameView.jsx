@@ -883,6 +883,7 @@ const exitSoundPlayedRef = useRef(false);
   // === 共有盤（終局後のみ・サーバ同期 / 表示トグルはユーザーごと） ===
   const [sharedBoardViewEnabled, setSharedBoardViewEnabled] = useState(false);
   const [sharedBoardStatus, setSharedBoardStatus] = useState({ enabled: { sente: false, gote: false }, mutual: false });
+  const [postgamePresence, setPostgamePresence] = useState(null); // { sente: bool, gote: bool }
   const [sharedBoardCursor, setSharedBoardCursor] = useState(0);
   const [sharedBoardBranch, setSharedBoardBranch] = useState(null);
   const [sharedBoardOffer, setSharedBoardOffer] = useState(null);
@@ -2070,6 +2071,7 @@ useEffect(() => {
 
 
   useEffect(() => {
+    try { setPostgamePresence(null); } catch {}
     const onSpecs = (p) => {
       try {
         if (p && (p.game_id === gameId || String(p.game_id) === String(gameId))) {
@@ -2320,9 +2322,35 @@ setGameState(prev => {
       } catch {}
     };
 
+    const handlePostgamePresence = (data) => {
+      try {
+        if (!data) return;
+        const gidRaw = (data.game_id ?? data.gameId ?? data.id) ?? null;
+        const incoming = gidRaw != null ? String(gidRaw) : '';
+        const currentId = gameId != null ? String(gameId) : '';
+        if (incoming && currentId && incoming !== currentId) return;
+        const p0 = data.presence;
+        const p = (p0 && typeof p0 === 'object') ? {
+          sente: !!p0.sente,
+          gote: !!p0.gote,
+        } : { sente: false, gote: false };
+        setPostgamePresence(p);
+      } catch {}
+    };
+
+    const handleSocketDisconnect = () => {
+      try {
+        // 自分が切断した場合のみ、ローカル表示の共有盤をOFF（相手側には影響しない）
+        setSharedBoardViewEnabled(false);
+        setSharedBoardOfferOpen(false);
+      } catch {}
+    };
+
     websocketService.on('shared_board_status', handleSharedBoardStatus);
     websocketService.on('shared_board_state', handleSharedBoardState);
     websocketService.on('shared_board_offer', handleSharedBoardOffer);
+    websocketService.on('postgame_presence', handlePostgamePresence);
+    websocketService.on('disconnect', handleSocketDisconnect);
     websocketService.on('game_update', handleGameUpdate);
     websocketService.on('analysis_update', handleAnalysisUpdate);
     if (!isFinished) websocketService.on('time_update', handleTimeUpdate);
@@ -2358,6 +2386,8 @@ setGameState(prev => {
       try { websocketService.off('shared_board_status', handleSharedBoardStatus); } catch {}
       try { websocketService.off('shared_board_state', handleSharedBoardState); } catch {}
       try { websocketService.off('shared_board_offer', handleSharedBoardOffer); } catch {}
+      try { websocketService.off('postgame_presence', handlePostgamePresence); } catch {}
+      try { websocketService.off('disconnect', handleSocketDisconnect); } catch {}
 
 
       // 退室時: 効果音（部屋退室）
@@ -3319,6 +3349,7 @@ if (loading) {
             isSpectator={isSpectator}
             currentUser={user || null}
             sharedBoardStatus={reviewEnabled ? sharedBoardStatus : null}
+            postgamePresence={reviewEnabled ? postgamePresence : null}
             allowManualEdit={!!(reviewEnabled && !isSpectator && (!isSharedViewActive || canOperateShared))}
             interactionDisabled={boardInteractionDisabled || (isSharedViewActive && !canOperateShared)}
             moveConfirmEnabled={moveConfirmEnabled}

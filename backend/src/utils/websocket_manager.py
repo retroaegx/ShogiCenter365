@@ -26,6 +26,15 @@ class WebSocketManager:
         self.connected_users: Dict[str, Dict[str, Any]] = {}   # sid -> {user_id, username, current_room}
         self.user_sessions: Dict[str, set] = {}                # user_id -> set(sid)
 
+        # Post-game player presence (for "退室済み" indicator)
+        # - _sid_game_memberships: sid -> set((game_id, role))
+        # - _game_player_conn_counts: game_id -> {sente:int, gote:int}
+        #
+        # NOTE: This is in-memory state (resets on server restart). That's fine:
+        # we only need accurate "who is currently connected".
+        self._sid_game_memberships: Dict[str, set] = {}
+        self._game_player_conn_counts: Dict[str, Dict[str, int]] = {}
+
         # NOTE: chat helpers are defined as nested functions to keep the class surface minimal.
 
         def _to_str_id(v) -> str:
@@ -394,6 +403,166 @@ class WebSocketManager:
             g_uid = _to_str_id((players.get('gote')  or {}).get('user_id') or doc.get('gote_id')  or '')
             return (s_uid, g_uid)
 
+        # --- post-game presence / shared board auto-disable -------------------
+        def _emit_postgame_presence(game_id: str) -> None:
+            """Broadcast players' presence to the game room.
+
+            Payload:
+              { game_id, presence: { sente: bool, gote: bool } }
+            """
+            try:
+                gid = str(game_id or '').strip()
+                if not gid:
+                    return
+                counts = self._game_player_conn_counts.get(gid) or {'sente': 0, 'gote': 0}
+                presence = {
+                    'sente': bool(int(counts.get('sente') or 0) > 0),
+                    'gote':  bool(int(counts.get('gote')  or 0) > 0),
+                }
+                self.socketio.emit('postgame_presence', {'game_id': gid, 'presence': presence}, room=f'game:{gid}')
+            except Exception:
+                logger.warning('emit postgame_presence failed', exc_info=True)
+
+        def _disable_shared_board_for_absent_player(game_id: str, role: str) -> None:
+            """If the game is finished and the given role has no connections left,
+            disable that player's shared board flag and broadcast shared_board_status.
+            """
+            try:
+                gid = str(game_id or '').strip()
+                if not gid or role not in ('sente', 'gote'):
+                    return
+
+                doc = _load_game_doc(gid)
+                if not isinstance(doc, dict) or str(doc.get('status') or '') != 'finished':
+                    return
+
+                svc = current_app.config.get('GAME_SERVICE')
+                game_model = getattr(svc, 'game_model', None) if svc is not None else None
+                if game_model is None:
+                    return
+
+                # Re-load via model for safe _id update
+                mdoc = None
+                try:
+                    mdoc = game_model.find_one({'_id': str(gid)})
+                except Exception:
+                    mdoc = None
+                if mdoc is None:
+                    try:
+                        mdoc = game_model.find_one({'_id': ObjectId(str(gid))})
+                    except Exception:
+                        mdoc = None
+                if not isinstance(mdoc, dict):
+                    mdoc = doc
+
+                sb = dict((mdoc or {}).get('shared_board') or {})
+                en0 = sb.get('enabled') or sb.get('players_enabled') or {}
+                if not isinstance(en0, dict):
+                    en0 = {}
+                en = {
+                    'sente': bool(en0.get('sente') or False),
+                    'gote':  bool(en0.get('gote')  or False),
+                }
+                if not bool(en.get(role)):
+                    return
+                en[role] = False
+
+                now = datetime.utcnow()
+                update = {
+                    'shared_board.enabled': en,
+                    # backward-compat field
+                    'shared_board.players_enabled': en,
+                    'shared_board.updated_at': now,
+                    'updated_at': now,
+                }
+                doc_id = (mdoc or {}).get('_id')
+                try:
+                    if doc_id is not None:
+                        game_model.update_one({'_id': doc_id}, {'$set': update})
+                    else:
+                        game_model.update_one({'_id': str(gid)}, {'$set': update})
+                except Exception:
+                    try:
+                        game_model.update_one({'_id': ObjectId(str(gid))}, {'$set': update})
+                    except Exception:
+                        logger.warning('shared board auto-disable persist failed', exc_info=True)
+                        return
+
+                mutual = bool(en.get('sente') and en.get('gote'))
+                try:
+                    self.socketio.emit('shared_board_status', {'game_id': gid, 'enabled': en, 'mutual': mutual}, room=f'game:{gid}')
+                except Exception:
+                    pass
+            except Exception:
+                logger.warning('shared board auto-disable failed', exc_info=True)
+
+        def _presence_join_game_player(sid: str, game_id: str, role: str) -> None:
+            try:
+                gid = str(game_id or '').strip()
+                if not sid or not gid or role not in ('sente', 'gote'):
+                    return
+                key = (gid, role)
+                mems = self._sid_game_memberships.get(sid)
+                if mems is None:
+                    mems = set()
+                    self._sid_game_memberships[sid] = mems
+                if key in mems:
+                    return
+                mems.add(key)
+
+                counts = self._game_player_conn_counts.get(gid)
+                if not isinstance(counts, dict):
+                    counts = {'sente': 0, 'gote': 0}
+                    self._game_player_conn_counts[gid] = counts
+                counts[role] = int(counts.get(role) or 0) + 1
+                _emit_postgame_presence(gid)
+            except Exception:
+                logger.warning('presence join failed', exc_info=True)
+
+        def _presence_leave_game_player(sid: str, game_id: Optional[str] = None) -> None:
+            """Decrement presence for this sid.
+            If game_id is given, only affect that game.
+            """
+            try:
+                if not sid:
+                    return
+                mems = self._sid_game_memberships.get(sid)
+                if not mems:
+                    return
+                gid_filter = str(game_id).strip() if game_id is not None else None
+                targets = []
+                for (gid, role) in list(mems):
+                    if gid_filter and gid != gid_filter:
+                        continue
+                    targets.append((gid, role))
+
+                for (gid, role) in targets:
+                    try:
+                        mems.discard((gid, role))
+                    except Exception:
+                        pass
+                    counts = self._game_player_conn_counts.get(gid)
+                    if isinstance(counts, dict):
+                        counts[role] = max(0, int(counts.get(role) or 0) - 1)
+                        # When the last connection for that player disappears, auto-disable their shared board.
+                        if int(counts.get(role) or 0) <= 0:
+                            _disable_shared_board_for_absent_player(gid, role)
+                        # If both sides are 0, keep it clean.
+                        if int(counts.get('sente') or 0) <= 0 and int(counts.get('gote') or 0) <= 0:
+                            try:
+                                self._game_player_conn_counts.pop(gid, None)
+                            except Exception:
+                                pass
+                    _emit_postgame_presence(gid)
+
+                if not mems:
+                    try:
+                        self._sid_game_memberships.pop(sid, None)
+                    except Exception:
+                        pass
+            except Exception:
+                logger.warning('presence leave failed', exc_info=True)
+
         def _emit_chat_history_to_sid(game_id: str, sid: str, requester_user_id: str = '') -> None:
             """Send chat history to a specific sid.
             - 対局中: 対局者のみ
@@ -745,6 +914,11 @@ class WebSocketManager:
                                                         g_uid = _norm(doc.get('gote_id')  or (doc.get('players') or {}).get('gote',  {}).get('user_id'))
                                                         me = _norm(info.get('user_id'))
                                                         role = 'sente' if s_uid and s_uid == me else ('gote' if g_uid and g_uid == me else None)
+                                                        try:
+                                                            if role:
+                                                                _presence_join_game_player(sid, str(gid), role)
+                                                        except Exception:
+                                                            pass
                                                         ts = dict(doc.get('time_state') or {}); now_ms = int(datetime.utcnow().timestamp() * 1000)
                                                         try:
                                                             if role:
@@ -980,6 +1154,12 @@ class WebSocketManager:
                             logger.warning('disconnect deduction loop failed: %s', _e, exc_info=True)
             except Exception as _e:
                 logger.warning('disconnect deduction outer failed: %s', _e, exc_info=True)
+
+            # post-game presence (players only)
+            try:
+                _presence_leave_game_player(sid)
+            except Exception:
+                logger.warning('disconnect presence update failed', exc_info=True)
             self._clear_session(sid)
 
         # --- lobby -------------------------------------------------------------
@@ -1046,6 +1226,25 @@ class WebSocketManager:
                 info = self.connected_users.get(sid) or {}
                 info['current_room'] = room_name
                 self.connected_users[sid] = info
+
+                # post-game presence (players only)
+                try:
+                    uid = info.get('user_id')
+                    if uid:
+                        doc0 = _load_game_doc(game_id)
+                        s_uid, g_uid = _get_player_user_ids(game_id, doc0)
+                        me = _to_str_id(uid)
+                        role = 'sente' if (me and me == s_uid) else ('gote' if (me and me == g_uid) else None)
+                        if role:
+                            _presence_join_game_player(sid, game_id, role)
+                except Exception:
+                    logger.warning('join_game presence update failed', exc_info=True)
+
+                # Always send the current presence snapshot to newcomers (players/spectators)
+                try:
+                    _emit_postgame_presence(str(game_id))
+                except Exception:
+                    pass
 
                 # spectator handling: players以外は観戦者として登録
                 try:
@@ -1272,6 +1471,11 @@ class WebSocketManager:
                 data = data or {}
                 game_id = (data.get('game_id') or data.get('id') or '')
                 room = data.get('room')
+                if not game_id and isinstance(room, str) and room.startswith('game:'):
+                    game_id = room.split('game:', 1)[1]
+                # Accept either raw <id> or room-style 'game:<id>'
+                if isinstance(game_id, str) and game_id.startswith('game:'):
+                    game_id = game_id.split('game:', 1)[1]
                 room_name = None
                 if isinstance(room, str):
                     room_name = room
@@ -1283,6 +1487,13 @@ class WebSocketManager:
                 if info.get('current_room') == room_name:
                     info['current_room'] = None
                     self.connected_users[sid] = info
+
+                # post-game presence (players only)
+                try:
+                    if game_id:
+                        _presence_leave_game_player(sid, str(game_id))
+                except Exception:
+                    logger.warning('leave_game presence update failed', exc_info=True)
 
                 # 観戦者としての退出処理
                 try:

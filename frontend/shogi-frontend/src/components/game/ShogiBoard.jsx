@@ -247,6 +247,7 @@ const ShogiBoard = ({
   isSpectator = false,
   currentUser,
   sharedBoardStatus = null,
+  postgamePresence = null,
   // review/analysis用: 手番プレイヤーの駒を手動で動かせる（WS同期は親側が制御）
   allowManualEdit = false,
   timeState = null,
@@ -1851,23 +1852,42 @@ return (
               (owner === PLAYERS.SENTE ? !!sharedBoardStatus.enabled.sente : !!sharedBoardStatus.enabled.gote)
             );
 
+            const isPostgame = !!sharedBoardStatus;
+            const roleKey = (owner === PLAYERS.SENTE) ? 'sente' : 'gote';
+            const isAbsent = !!(isPostgame && postgamePresence && postgamePresence[roleKey] === false);
+            const showAny = !!(sharedEnabled || isAbsent);
+
+            const sharedView = sharedEnabled ? (
+              <span className="inline-flex items-center gap-1 text-emerald-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {t('ui.components.game.shogiboard.kbdb71059')}
+              </span>
+            ) : null;
+
+            const absentView = isAbsent ? (
+              <span className="inline-flex items-center gap-1 text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                {t('ui.components.game.shogiboard.kd9b8e2a1')}
+              </span>
+            ) : null;
+
             // PC/Tablet は常に1行分(改行分)の領域を確保してレイアウトのガタつきを防ぐ。
             // Mobile は従来通り「表示する時だけ」出す。
             if (usePcTabletHeader) {
               return (
                 <span
-                  className={`${usePcTabletHeader ? '' : 'ml-1'} inline-flex items-center gap-1 text-[10px] text-emerald-700 whitespace-nowrap shrink-0 ${sharedEnabled ? '' : 'invisible'}`}
+                  className={`${usePcTabletHeader ? '' : 'ml-1'} inline-flex items-center gap-2 text-[10px] whitespace-nowrap shrink-0 ${showAny ? '' : 'invisible'}`}
                 >
-                  <span className={`w-2 h-2 rounded-full bg-emerald-500 ${sharedEnabled ? 'animate-pulse' : ''}`} />
-                  {t('ui.components.game.shogiboard.kbdb71059')}
+                  {sharedView}
+                  {absentView}
                 </span>
               );
             }
 
-            return sharedEnabled ? (
-              <span className={`${usePcTabletHeader ? '' : 'ml-1'} inline-flex items-center gap-1 text-[10px] text-emerald-700 whitespace-nowrap shrink-0`}>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {t('ui.components.game.shogiboard.kbdb71059')}
+            return showAny ? (
+              <span className={`${usePcTabletHeader ? '' : 'ml-1'} inline-flex items-center gap-2 text-[10px] whitespace-nowrap shrink-0`}>
+                {sharedView}
+                {absentView}
               </span>
             ) : null;
           })()}
