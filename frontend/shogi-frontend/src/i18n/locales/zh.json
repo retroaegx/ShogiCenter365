@@ -783,5 +783,7 @@
   "static.nav.legal": "条款与隐私",
 
   "static.nav.terms": "服务条款",
-  "static.nav.privacy": "隐私政策"
+  "static.nav.privacy": "隐私政策",
+  "ui.app.moveFromHighlightEnabled": "高亮起点",
+  "ui.app.movePieceHighlightEnabled": "高亮移动的棋子"
 }

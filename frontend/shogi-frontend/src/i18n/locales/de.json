@@ -782,5 +782,7 @@
   "user.error.user_not_found": "",
   "static.nav.legal": "AGB & Datenschutz",
   "static.nav.terms": "Nutzungsbedingungen",
-  "static.nav.privacy": "Datenschutzerklärung"
+  "static.nav.privacy": "Datenschutzerklärung",
+  "ui.app.moveFromHighlightEnabled": "Zugursprung hervorheben",
+  "ui.app.movePieceHighlightEnabled": "Bewegte Figur hervorheben"
 }

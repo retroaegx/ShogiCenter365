@@ -288,7 +288,7 @@ const { user, logout } = useAuth();
               from_username: p.from_username || (p.from_user && p.from_user.username) || '',
               from_rating: p.from_rating ?? (p.from_user && p.from_user.rating),
               time_code: p.time_code,
-              time_label: p.time_name || codeToName(p.time_code) || '',
+              time_label: codeToName(p.time_code) || p.time_name || '',
               requested_game_type: p.requested_game_type || p.game_type,
             });
             // pull latest presence (server also writes pending_offer on receiver)
@@ -353,7 +353,7 @@ const { user, logout } = useAuth();
             from_username: (p.from_user && p.from_user.username) || p.from_username || '',
             from_rating: p.from_rating ?? (p.from_user && p.from_user.rating),
             time_code: p.time_code,
-            time_label: p.time_name || codeToName(p.time_code) || '',
+            time_label: codeToName(p.time_code) || p.time_name || '',
             requested_game_type: p.requested_game_type || p.game_type,
           });
         }
@@ -839,9 +839,9 @@ useEffect(() => {
 
 
               const timeText = (usr.waiting === 'seeking')
-                ? (usr.waiting_info?.time_name
-                  ?? codeToName(usr.waiting_info?.time_code)
-                  ?? (usr.waiting_info?.time_control ? t('ui.components.lobby.lobbyview.k5c442341', { minutes: usr.waiting_info.time_control }) : '-'))
+                ? (codeToName(usr.waiting_info?.time_code)
+                  || usr.waiting_info?.time_name
+                  || (usr.waiting_info?.time_control ? t('ui.components.lobby.lobbyview.k5c442341', { minutes: usr.waiting_info.time_control }) : '-'))
                 : '-';
 
               const requestableBase = (usr.waiting === 'seeking')

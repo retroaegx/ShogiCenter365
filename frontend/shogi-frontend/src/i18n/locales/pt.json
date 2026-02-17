@@ -782,5 +782,7 @@
   "user.error.user_not_found": "",
   "static.nav.legal": "Termos e privacidade",
   "static.nav.terms": "Termos de serviço",
-  "static.nav.privacy": "Política de privacidade"
+  "static.nav.privacy": "Política de privacidade",
+  "ui.app.moveFromHighlightEnabled": "Destacar casa de origem",
+  "ui.app.movePieceHighlightEnabled": "Destacar peça movida"
 }

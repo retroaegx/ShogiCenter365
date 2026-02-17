@@ -203,6 +203,8 @@
   "ui.app.kfadf24db": "保存",
   "ui.app.kfb71a4e0": "接続エラー",
   "ui.app.kfd4a4a68": "着手確認機能",
+  "ui.app.moveFromHighlightEnabled": "移動元の強調表示",
+  "ui.app.movePieceHighlightEnabled": "移動駒の強調表示",
   "ui.common.google_name": "Google: {name}",
   "ui.common.id_template": "ID:{id}",
   "ui.common.ok": "OK",

@@ -35,7 +35,10 @@ function Slider({
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "bg-border relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+          // 背景のレールが薄すぎて見えづらい端末があるので、
+          // レール色を少し濃く＆太くして視認性を上げる。
+          // (Range は従来どおり primary)
+          "bg-muted/70 border border-border relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-2 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-2"
         )}>
         <SliderPrimitive.Range
           data-slot="slider-range"

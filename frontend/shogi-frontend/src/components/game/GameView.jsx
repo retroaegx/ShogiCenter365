@@ -840,6 +840,8 @@ const GameView = ({
   onChangeMoveConfirmEnabled,
   reviewDrawNextMove = false,
   reviewDrawBestMove = false,
+  lastMoveFromHighlightEnabled = true,
+  lastMovePieceHighlightEnabled = true,
 }) => {
   const isMountedRef = useIsMountedRef();
   const isMobile = useIsMobile();
@@ -3301,6 +3303,8 @@ if (loading) {
             nextMainlineMoveUsi={(reviewEnabled && reviewDrawNextMove) ? nextMainlineMoveUsiForArrow : null}
             bestMoveUsi={(reviewEnabled && reviewDrawBestMove) ? bestMoveUsiForOverlay : null}
             reviewOverlayPlayer={reviewEnabled ? reviewOverlayPlayer : null}
+            lastMoveFromHighlightEnabled={lastMoveFromHighlightEnabled}
+            lastMovePieceHighlightEnabled={lastMovePieceHighlightEnabled}
             pendingMoveConfirm={(!reviewEnabled && pendingMove && pendingMove.stage === 'confirm') ? { usi: pendingMove.usi, kifText: pendingMove.kifText || '', toRow: pendingMove.toRow, toCol: pendingMove.toCol } : null}
             onConfirmMoveConfirm={confirmPendingMove}
             onCancelMoveConfirm={cancelPendingMove}

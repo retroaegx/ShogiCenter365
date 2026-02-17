@@ -259,6 +259,8 @@ const ShogiBoard = ({
   onCancelMoveConfirm = null,
   moveConfirmEnabled = false,
   onChangeMoveConfirmEnabled = null,
+  lastMoveFromHighlightEnabled = true,
+  lastMovePieceHighlightEnabled = true,
   nextMainlineMoveUsi = null,
   bestMoveUsi = null,
   reviewOverlayPlayer = null,
@@ -1199,19 +1201,31 @@ const handleCapturedPointerDown = useCallback((e, pieceType, owner) => {
   const renderSquareOverlay = (row, col) => {
     const isSelected = selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
     const isPossibleMove = possibleMoves.some((move) => move.row === row && move.col === col);
-    const isLastMove =
-      effectiveLastMove &&
-      ((effectiveLastMove.fromRow === row && effectiveLastMove.fromCol === col) ||
-        (effectiveLastMove.toRow === row && effectiveLastMove.toCol === col));
+    const isDropLastMove =
+  !!effectiveLastMove &&
+  effectiveLastMove.fromRow === effectiveLastMove.toRow &&
+  effectiveLastMove.fromCol === effectiveLastMove.toCol;
+
+const isLastMoveFrom =
+  !!effectiveLastMove &&
+  !isDropLastMove &&
+  (effectiveLastMove.fromRow === row && effectiveLastMove.fromCol === col);
+
+const isLastMoveTo =
+  !!effectiveLastMove &&
+  (effectiveLastMove.toRow === row && effectiveLastMove.toCol === col);
 
     // 「動かせる位置」は、四角い塗りつぶしではなく点滅する丸で表示する
     // （駒が置かれているマスでも見えるように z-index を高めに）
     const layers = [];
-    if (isLastMove) {
-      // 直近の移動元/移動先は「赤い点滅丸」で表示（緑の候補表示の赤版）
-      // 駒が置かれているマスでも見えるように z-index を高めに
-      layers.push(<div key="last" className="shogi-last-move-indicator" />);
-    }
+    if (lastMovePieceHighlightEnabled && isLastMoveTo) {
+  // 移動先は「うっすら背景」＋ 駒側の輪郭/波紋（駒描画側で付与）
+  layers.push(<div key="lastto" className="shogi-last-move-to-bg" />);
+}
+if (lastMoveFromHighlightEnabled && isLastMoveFrom) {
+  // 移動元は「赤い点滅丸」で表示（緑の候補表示の赤版）
+  layers.push(<div key="lastfrom" className="shogi-last-move-indicator" />);
+}
     if (isSelected) {
       layers.push(
         <div
@@ -1473,7 +1487,7 @@ return (
   };
 
 
-  const renderPiece = (piece) => {
+  const renderPiece = (piece, opts = null) => {
     if (!piece) return null;
     const isGote = piece.owner === PLAYERS.GOTE || piece.owner === 'gote';
     const rotation = (boardFlipped ? !isGote : isGote) ? 'rotate-180' : '';
@@ -1487,16 +1501,41 @@ return (
       url = pmap[norm] || null;
     }
     if (url) {
-      return (
+  const effect = opts && typeof opts === 'object' ? (opts.effect || null) : null;
+
+  if (effect === 'lastmove-to') {
+    // PNGの透明（アルファ）を無視して輪郭を出すため、drop-shadow を利用する
+    return (
+      <span
+        className={`${rotation} pointer-events-none relative w-full h-full`}
+        style={{ display: 'block' }}
+      >
         <img
           src={url}
           alt={norm}
-          style={{ width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }}
-          className={`${rotation} pointer-events-none`}
+          className="absolute inset-0 w-full h-full object-contain shogi-piece-lastmove-to-ripple"
           draggable={false}
         />
-      );
-    }
+        <img
+          src={url}
+          alt={norm}
+          className="absolute inset-0 w-full h-full object-contain shogi-piece-lastmove-to-outline"
+          draggable={false}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt={norm}
+      style={{ width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }}
+      className={`${rotation} pointer-events-none`}
+      draggable={false}
+    />
+  );
+}
     return (
       <span className={`${rotation} ${isGote ? 'text-red-600' : 'text-blue-600'}`}>
         {t(PIECE_NAMES[piece.piece] || PIECE_NAMES[piece.type] || '')}
@@ -2291,7 +2330,12 @@ return (
                             justifyContent: 'center'
                           }}
                         >
-                          {(dragUI.dragging && dragUI.type === 'move' && dragUI.from && dragUI.from.row === row && dragUI.from.col === col) ? null : renderPiece(board?.[row]?.[col])}
+                          {(dragUI.dragging && dragUI.type === 'move' && dragUI.from && dragUI.from.row === row && dragUI.from.col === col) ? null : renderPiece(
+                            board?.[row]?.[col],
+                            (lastMovePieceHighlightEnabled && effectiveLastMove && effectiveLastMove.toRow === row && effectiveLastMove.toCol === col)
+                              ? { effect: 'lastmove-to' }
+                              : null
+                          )}
                         </div>
                       </div>
                     ))}

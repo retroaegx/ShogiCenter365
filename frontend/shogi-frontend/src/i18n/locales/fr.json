@@ -782,5 +782,7 @@
   "user.error.user_not_found": "",
   "static.nav.legal": "Conditions & confidentialité",
   "static.nav.terms": "Conditions d'utilisation",
-  "static.nav.privacy": "Politique de confidentialité"
+  "static.nav.privacy": "Politique de confidentialité",
+  "ui.app.moveFromHighlightEnabled": "Surligner la case de départ",
+  "ui.app.movePieceHighlightEnabled": "Surligner la pièce déplacée"
 }

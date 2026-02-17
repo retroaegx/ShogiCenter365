@@ -407,6 +407,26 @@ useLayoutEffect(() => {
     } catch {}
     return false;
   });
+
+  const [lastMoveFromHighlightEnabled, setLastMoveFromHighlightEnabled] = useState(() => {
+    // 対局画面: 移動元の強調表示（デフォルトON）
+    try {
+      const v = window?.localStorage?.getItem('shogi_lastMoveFromHighlightEnabled');
+      if (v === '0') return false;
+      if (v === '1') return true;
+    } catch {}
+    return true;
+  });
+
+  const [lastMovePieceHighlightEnabled, setLastMovePieceHighlightEnabled] = useState(() => {
+    // 対局画面: 移動駒の強調表示（デフォルトON）
+    try {
+      const v = window?.localStorage?.getItem('shogi_lastMovePieceHighlightEnabled');
+      if (v === '0') return false;
+      if (v === '1') return true;
+    } catch {}
+    return true;
+  });
   const [authMode, setAuthMode] = useState('login');
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -510,11 +530,15 @@ useLayoutEffect(() => {
     const mc = (typeof s.moveConfirmEnabled === 'boolean') ? s.moveConfirmEnabled : null;
     const rdn = (typeof s.reviewDrawNextMove === 'boolean') ? s.reviewDrawNextMove : null;
     const rdb = (typeof s.reviewDrawBestMove === 'boolean') ? s.reviewDrawBestMove : null;
+    const lmf = (typeof s.lastMoveFromHighlightEnabled === 'boolean') ? s.lastMoveFromHighlightEnabled : null;
+    const lmp = (typeof s.lastMovePieceHighlightEnabled === 'boolean') ? s.lastMovePieceHighlightEnabled : null;
     if (cv !== null) setCoordVisible(cv);
     if (swm === 'wide' || swm === 'normal') setShellWidthMode(swm);
     if (mc !== null) setMoveConfirmEnabled(mc);
     if (rdn !== null) setReviewDrawNextMove(rdn);
     if (rdb !== null) setReviewDrawBestMove(rdb);
+    if (lmf !== null) setLastMoveFromHighlightEnabled(lmf);
+    if (lmp !== null) setLastMovePieceHighlightEnabled(lmp);
     try {
       if (bg) localStorage.setItem(THEME_LS_KEYS.backgroundSet, bg);
       if (ps) localStorage.setItem(THEME_LS_KEYS.pieceSet, ps);
@@ -523,6 +547,8 @@ useLayoutEffect(() => {
       if (mc !== null) localStorage.setItem('shogi_moveConfirmEnabled', mc ? '1' : '0');
       if (rdn !== null) localStorage.setItem('shogi_reviewDrawNextMove', rdn ? '1' : '0');
       if (rdb !== null) localStorage.setItem('shogi_reviewDrawBestMove', rdb ? '1' : '0');
+      if (lmf !== null) localStorage.setItem('shogi_lastMoveFromHighlightEnabled', lmf ? '1' : '0');
+      if (lmp !== null) localStorage.setItem('shogi_lastMovePieceHighlightEnabled', lmp ? '1' : '0');
     } catch {}
   }, [user]);
 
@@ -544,6 +570,14 @@ useLayoutEffect(() => {
   }, [reviewDrawBestMove]);
 
   useEffect(() => {
+    try { localStorage.setItem('shogi_lastMoveFromHighlightEnabled', lastMoveFromHighlightEnabled ? '1' : '0'); } catch {}
+  }, [lastMoveFromHighlightEnabled]);
+
+  useEffect(() => {
+    try { localStorage.setItem('shogi_lastMovePieceHighlightEnabled', lastMovePieceHighlightEnabled ? '1' : '0'); } catch {}
+  }, [lastMovePieceHighlightEnabled]);
+
+  useEffect(() => {
     try { localStorage.setItem('shogi_shellWidthMode', shellWidthMode); } catch {}
   }, [shellWidthMode]);
 
@@ -560,13 +594,17 @@ useLayoutEffect(() => {
     const desiredMc = (typeof s.moveConfirmEnabled === 'boolean') ? s.moveConfirmEnabled : false;
     const desiredRdn = (typeof s.reviewDrawNextMove === 'boolean') ? s.reviewDrawNextMove : false;
     const desiredRdb = (typeof s.reviewDrawBestMove === 'boolean') ? s.reviewDrawBestMove : false;
+    const desiredLmf = (typeof s.lastMoveFromHighlightEnabled === 'boolean') ? s.lastMoveFromHighlightEnabled : true;
+    const desiredLmp = (typeof s.lastMovePieceHighlightEnabled === 'boolean') ? s.lastMovePieceHighlightEnabled : true;
 
     if (
       desiredCv === coordVisible &&
       desiredSwm === shellWidthMode &&
       desiredMc === moveConfirmEnabled &&
       desiredRdn === reviewDrawNextMove &&
-      desiredRdb === reviewDrawBestMove
+      desiredRdb === reviewDrawBestMove &&
+      desiredLmf === lastMoveFromHighlightEnabled &&
+      desiredLmp === lastMovePieceHighlightEnabled
     ) return;
 
     if (saveGameUiTimerRef.current) {
@@ -575,7 +613,17 @@ useLayoutEffect(() => {
 
     saveGameUiTimerRef.current = window.setTimeout(async () => {
       try {
-        const payload = { settings: { coordVisible, shellWidthMode, moveConfirmEnabled, reviewDrawNextMove, reviewDrawBestMove } };
+        const payload = {
+          settings: {
+            coordVisible,
+            shellWidthMode,
+            moveConfirmEnabled,
+            reviewDrawNextMove,
+            reviewDrawBestMove,
+            lastMoveFromHighlightEnabled,
+            lastMovePieceHighlightEnabled,
+          }
+        };
         const res = await api.put('/user/settings', payload);
         const updatedSettings =
           res?.data?.settings ||
@@ -602,6 +650,8 @@ useLayoutEffect(() => {
     moveConfirmEnabled,
     reviewDrawNextMove,
     reviewDrawBestMove,
+    lastMoveFromHighlightEnabled,
+    lastMovePieceHighlightEnabled,
     isAuthenticated,
     user?.id,
     user?.settings?.coordVisible,
@@ -609,6 +659,8 @@ useLayoutEffect(() => {
     user?.settings?.moveConfirmEnabled,
     user?.settings?.reviewDrawNextMove,
     user?.settings?.reviewDrawBestMove,
+    user?.settings?.lastMoveFromHighlightEnabled,
+    user?.settings?.lastMovePieceHighlightEnabled,
     setUser,
   ]);
 
@@ -639,6 +691,12 @@ useLayoutEffect(() => {
       }
       if (typeof s.reviewDrawBestMove === 'boolean') {
         setReviewDrawBestMove(s.reviewDrawBestMove);
+      }
+      if (typeof s.lastMoveFromHighlightEnabled === 'boolean') {
+        setLastMoveFromHighlightEnabled(s.lastMoveFromHighlightEnabled);
+      }
+      if (typeof s.lastMovePieceHighlightEnabled === 'boolean') {
+        setLastMovePieceHighlightEnabled(s.lastMovePieceHighlightEnabled);
       }
     }
   }, [showSettingsDialog, user]);
@@ -731,6 +789,8 @@ useLayoutEffect(() => {
           moveConfirmEnabled,
           reviewDrawNextMove,
           reviewDrawBestMove,
+          lastMoveFromHighlightEnabled,
+          lastMovePieceHighlightEnabled,
         },
       };
       const res = await api.put('/user/settings', payload);
@@ -769,6 +829,12 @@ useLayoutEffect(() => {
         }
         if (typeof updatedSettings.reviewDrawBestMove === 'boolean') {
           setReviewDrawBestMove(updatedSettings.reviewDrawBestMove);
+        }
+        if (typeof updatedSettings.lastMoveFromHighlightEnabled === 'boolean') {
+          setLastMoveFromHighlightEnabled(updatedSettings.lastMoveFromHighlightEnabled);
+        }
+        if (typeof updatedSettings.lastMovePieceHighlightEnabled === 'boolean') {
+          setLastMovePieceHighlightEnabled(updatedSettings.lastMovePieceHighlightEnabled);
         }
       }
 
@@ -1033,6 +1099,32 @@ const headerWireFrameBox = (extra = "") => `${headerWireFrameBoxBase} ${extra}`;
                   <div className="text-xs text-muted-foreground -mt-2">{
                     t("ui.app.k64a77abe")}</div>
 
+                  {/* 移動元の強調表示 */}
+                  <div className="flex items-center gap-4 py-2">
+                    <Label htmlFor="lastmove-from-highlight" className="w-28 shrink-0">{
+                      t("ui.app.moveFromHighlightEnabled")}</Label>
+                    <div className="flex flex-1 items-center justify-end">
+                      <Switch className="scale-110"
+                        id="lastmove-from-highlight"
+                        checked={!!lastMoveFromHighlightEnabled}
+                        onCheckedChange={(v) => setLastMoveFromHighlightEnabled(!!v)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 移動駒の強調表示 */}
+                  <div className="flex items-center gap-4 py-2">
+                    <Label htmlFor="lastmove-piece-highlight" className="w-28 shrink-0">{
+                      t("ui.app.movePieceHighlightEnabled")}</Label>
+                    <div className="flex flex-1 items-center justify-end">
+                      <Switch className="scale-110"
+                        id="lastmove-piece-highlight"
+                        checked={!!lastMovePieceHighlightEnabled}
+                        onCheckedChange={(v) => setLastMovePieceHighlightEnabled(!!v)}
+                      />
+                    </div>
+                  </div>
+
                   {/* 感想戦: 次の手 */}
                   <div className="flex items-center gap-4 py-2">
                     <Label htmlFor="review-draw-next" className="w-28 shrink-0">{
@@ -1065,9 +1157,9 @@ const headerWireFrameBox = (extra = "") => `${headerWireFrameBoxBase} ${extra}`;
 
                 </div>
               </TabsContent>
-              <TabsContent value="sound" className="mt-0 space-y-6">
+              <TabsContent value="sound" className="mt-0 space-y-10">
                 {/* 環境音 */}
-                <div className="flex items-center gap-4 py-2">
+                <div className="flex items-center gap-6 py-4">
                   <Label htmlFor="env-sound" className="w-28 shrink-0">{
                     t("ui.app.kc0ba5b38")}</Label>
                   <Slider
@@ -1084,7 +1176,7 @@ const headerWireFrameBox = (extra = "") => `${headerWireFrameBoxBase} ${extra}`;
                 </div>
 
                 {/* 効果音 */}
-                <div className="flex items-center gap-4 py-2">
+                <div className="flex items-center gap-6 py-4">
                   <Label htmlFor="sfx-sound" className="w-28 shrink-0">{
                     t("ui.app.k310719b8")}</Label>
                   <Slider
@@ -1326,6 +1418,32 @@ return (
                   <div className="text-xs text-muted-foreground -mt-2">{
                     t("ui.app.k64a77abe")}</div>
 
+                  {/* 移動元の強調表示 */}
+                  <div className="flex items-center gap-4 py-2">
+                    <Label htmlFor="lastmove-from-highlight" className="w-28 shrink-0">{
+                      t("ui.app.moveFromHighlightEnabled")}</Label>
+                    <div className="flex flex-1 items-center justify-end">
+                      <Switch className="scale-110"
+                        id="lastmove-from-highlight"
+                        checked={!!lastMoveFromHighlightEnabled}
+                        onCheckedChange={(v) => setLastMoveFromHighlightEnabled(!!v)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 移動駒の強調表示 */}
+                  <div className="flex items-center gap-4 py-2">
+                    <Label htmlFor="lastmove-piece-highlight" className="w-28 shrink-0">{
+                      t("ui.app.movePieceHighlightEnabled")}</Label>
+                    <div className="flex flex-1 items-center justify-end">
+                      <Switch className="scale-110"
+                        id="lastmove-piece-highlight"
+                        checked={!!lastMovePieceHighlightEnabled}
+                        onCheckedChange={(v) => setLastMovePieceHighlightEnabled(!!v)}
+                      />
+                    </div>
+                  </div>
+
                   {/* 感想戦: 次の手 */}
                   <div className="flex items-center gap-4 py-2">
                     <Label htmlFor="review-draw-next" className="w-28 shrink-0">{
@@ -1358,9 +1476,9 @@ return (
 
                 </div>
               </TabsContent>
-              <TabsContent value="sound" className="mt-0 space-y-6">
+              <TabsContent value="sound" className="mt-0 space-y-10">
                 {/* 環境音 */}
-                <div className="flex items-center gap-4 py-2">
+                <div className="flex items-center gap-6 py-4">
                   <Label htmlFor="env-sound" className="w-28 shrink-0">{
                     t("ui.app.kc0ba5b38")}</Label>
                   <Slider
@@ -1377,7 +1495,7 @@ return (
                 </div>
 
                 {/* 効果音 */}
-                <div className="flex items-center gap-4 py-2">
+                <div className="flex items-center gap-6 py-4">
                   <Label htmlFor="sfx-sound" className="w-28 shrink-0">{
                     t("ui.app.k310719b8")}</Label>
                   <Slider
@@ -1683,6 +1801,8 @@ return (
                 onChangeMoveConfirmEnabled={setMoveConfirmEnabled}
                 reviewDrawNextMove={reviewDrawNextMove}
                 reviewDrawBestMove={reviewDrawBestMove}
+                lastMoveFromHighlightEnabled={lastMoveFromHighlightEnabled}
+                lastMovePieceHighlightEnabled={lastMovePieceHighlightEnabled}
               />
             </div>
             ) : (
@@ -1751,6 +1871,8 @@ return (
                 onChangeMoveConfirmEnabled={setMoveConfirmEnabled}
                   reviewDrawNextMove={reviewDrawNextMove}
                   reviewDrawBestMove={reviewDrawBestMove}
+                lastMoveFromHighlightEnabled={lastMoveFromHighlightEnabled}
+                lastMovePieceHighlightEnabled={lastMovePieceHighlightEnabled}
               />
             </div>
             )}
