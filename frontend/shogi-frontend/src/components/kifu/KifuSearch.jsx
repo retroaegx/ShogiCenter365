@@ -4,7 +4,7 @@ import api from '@/services/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { kifuErrorMessage } from '@/i18n/kifuErrors';
-import { formatDateShort } from '@/i18n/date';
+// NOTE: 日付入力はブラウザ標準の date picker を使う（クリックでカレンダーが出る）
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -23,6 +21,66 @@ import KifuReplayOverlay from '@/components/kifu/KifuReplayOverlay';
 import { Search, Calendar as CalendarIcon, RefreshCw, Download, Copy, Play, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
 const DEFAULT_PER_PAGE = 30;
+
+function startOfDayLocal(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function clampDate(d, min, max) {
+  const t = d.getTime();
+  const tMin = min.getTime();
+  const tMax = max.getTime();
+  if (t < tMin) return new Date(tMin);
+  if (t > tMax) return new Date(tMax);
+  return d;
+}
+
+function parseYmdToLocalDate(ymd) {
+  const s = String(ymd || '').trim();
+  const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(s);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const da = Number(m[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(da)) return null;
+  const d = new Date(y, mo - 1, da);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function makeDefaultSearchParams(username) {
+  const today = startOfDayLocal(new Date());
+  const min = new Date(today);
+  min.setFullYear(min.getFullYear() - 1);
+  const from = new Date(today);
+  from.setMonth(from.getMonth() - 1);
+  const clampedFrom = from < min ? min : from;
+  return {
+    player1: username || '',
+    player2: '',
+    date_from: clampedFrom,
+    date_to: today,
+    game_type: 'all',
+    time_code: 'all',
+  };
+}
+
+function openNativeDatePickerById(id) {
+  try {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // Chrome などでは showPicker が使える
+    if (typeof el.showPicker === 'function') {
+      el.showPicker();
+    } else {
+      el.focus();
+    }
+  } catch {
+    // ここは UI 操作だけなので黙る
+  }
+}
 
 const getTimeControlOptions = () => ([
   { value: 'all', label: t("ui.components.kifu.kifusearch.kc15ccc4d") },
@@ -170,14 +228,7 @@ export default function KifuSearch() {
   // スマホでは「検索前＝条件」「検索後＝結果」を1画面にする
   const [mobilePane, setMobilePane] = useState('filters');
 
-  const [searchParams, setSearchParams] = useState(() => ({
-    player1: user?.username || '',
-    player2: '',
-    date_from: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
-    date_to: new Date(),
-    game_type: 'all', // rating/free
-    time_code: 'all', // hayasashi/15min...
-  }));
+  const [searchParams, setSearchParams] = useState(() => makeDefaultSearchParams(user?.username));
 
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
@@ -219,16 +270,78 @@ export default function KifuSearch() {
     setSearchParams((p) => ({ ...p, [key]: value }));
   };
 
-  const resetSearch = () => {
-    const now = new Date();
-    setSearchParams({
-      player1: user?.username || '',
-      player2: '',
-      date_from: new Date(now.setFullYear(now.getFullYear() - 1)),
-      date_to: new Date(),
-      game_type: 'all',
-      time_code: 'all',
+  const selectableMax = useMemo(() => startOfDayLocal(new Date()), []);
+  const selectableMin = useMemo(() => {
+    const d = new Date(selectableMax);
+    d.setFullYear(d.getFullYear() - 1);
+    return d;
+  }, [selectableMax]);
+
+  const ymdMin = useMemo(() => format(selectableMin, 'yyyy-MM-dd'), [selectableMin]);
+  const ymdMax = useMemo(() => format(selectableMax, 'yyyy-MM-dd'), [selectableMax]);
+
+  // 個別入力の min/max（range の整合も取る）
+  const ymdFrom = useMemo(() => format(startOfDayLocal(searchParams.date_from), 'yyyy-MM-dd'), [searchParams.date_from]);
+  const ymdTo = useMemo(() => format(startOfDayLocal(searchParams.date_to), 'yyyy-MM-dd'), [searchParams.date_to]);
+
+  const ymdFromMax = useMemo(() => {
+    const to = startOfDayLocal(searchParams.date_to);
+    const max = to < selectableMax ? to : selectableMax;
+    return format(max, 'yyyy-MM-dd');
+  }, [searchParams.date_to, selectableMax]);
+
+  const ymdToMin = useMemo(() => {
+    const from = startOfDayLocal(searchParams.date_from);
+    const min = from > selectableMin ? from : selectableMin;
+    return format(min, 'yyyy-MM-dd');
+  }, [searchParams.date_from, selectableMin]);
+
+  const applyDateFromYmd = (ymd) => {
+    const parsed = parseYmdToLocalDate(ymd);
+    if (!parsed) return;
+
+    setSearchParams((p) => {
+      const max = startOfDayLocal(new Date());
+      const min = (() => {
+        const d = new Date(max);
+        d.setFullYear(d.getFullYear() - 1);
+        return d;
+      })();
+
+      const curTo = clampDate(startOfDayLocal(p.date_to), min, max);
+      const maxFrom = curTo < max ? curTo : max;
+
+      const nextFrom = clampDate(startOfDayLocal(parsed), min, maxFrom);
+      const nextTo = nextFrom > curTo ? nextFrom : curTo;
+
+      return { ...p, date_from: nextFrom, date_to: nextTo };
     });
+  };
+
+  const applyDateToYmd = (ymd) => {
+    const parsed = parseYmdToLocalDate(ymd);
+    if (!parsed) return;
+
+    setSearchParams((p) => {
+      const max = startOfDayLocal(new Date());
+      const min = (() => {
+        const d = new Date(max);
+        d.setFullYear(d.getFullYear() - 1);
+        return d;
+      })();
+
+      const curFrom = clampDate(startOfDayLocal(p.date_from), min, max);
+      const minTo = curFrom > min ? curFrom : min;
+
+      const nextTo = clampDate(startOfDayLocal(parsed), minTo, max);
+      const nextFrom = nextTo < curFrom ? nextTo : curFrom;
+
+      return { ...p, date_from: nextFrom, date_to: nextTo };
+    });
+  };
+
+  const resetSearch = () => {
+    setSearchParams(makeDefaultSearchParams(user?.username));
     setSearchResults([]);
     setSearched(false);
     setMobilePane('filters');
@@ -394,44 +507,50 @@ export default function KifuSearch() {
 
               {/* Date from */}
               <div className="space-y-2">
-                <Label>{t("ui.components.kifu.kifusearch.kf4850c36")}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal bg-white">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formatDateShort(searchParams.date_from)}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={searchParams.date_from}
-                      onSelect={(d) => d && updateSearchParam('date_from', d)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label htmlFor="kifu-date-from">{t("ui.components.kifu.kifusearch.kf4850c36")}</Label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label="open calendar"
+                    onClick={() => openNativeDatePickerById('kifu-date-from')}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </button>
+                  <Input
+                    id="kifu-date-from"
+                    type="date"
+                    className="bg-white pl-9"
+                    value={ymdFrom}
+                    min={ymdMin}
+                    max={ymdFromMax}
+                    onChange={(e) => applyDateFromYmd(e.target.value)}
+                  />
+                </div>
               </div>
 
               {/* Date to */}
               <div className="space-y-2">
-                <Label>{t("ui.components.kifu.kifusearch.k1c649382")}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal bg-white">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formatDateShort(searchParams.date_to)}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={searchParams.date_to}
-                      onSelect={(d) => d && updateSearchParam('date_to', d)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label htmlFor="kifu-date-to">{t("ui.components.kifu.kifusearch.k1c649382")}</Label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label="open calendar"
+                    onClick={() => openNativeDatePickerById('kifu-date-to')}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </button>
+                  <Input
+                    id="kifu-date-to"
+                    type="date"
+                    className="bg-white pl-9"
+                    value={ymdTo}
+                    min={ymdToMin}
+                    max={ymdMax}
+                    onChange={(e) => applyDateToYmd(e.target.value)}
+                  />
+                </div>
               </div>
 
               {/* Game type */}
@@ -450,7 +569,7 @@ export default function KifuSearch() {
               </div>
 
               {/* Time control */}
-              <div className="space-y-2 min-[769px]:col-span-2">
+              <div className="space-y-2 min-w-0">
                 <Label>{t("ui.components.kifu.kifusearch.k21e72ec7")}</Label>
                 <Select value={searchParams.time_code} onValueChange={(v) => updateSearchParam('time_code', v)}>
                   <SelectTrigger className="bg-white">
