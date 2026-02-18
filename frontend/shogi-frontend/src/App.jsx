@@ -46,6 +46,7 @@ import {
 	  Ban
 } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { OnlineUsersProvider, useOnlineUsers } from '@/contexts/OnlineUsersContext';
 import useSound from '@/hooks/useSound';
 import websocketService from '@/services/websocketService';
 import { maybeReloadIfBuildChanged } from '@/services/buildInfo';
@@ -107,6 +108,7 @@ const AppContent = () => {
   const mainShellRef = useRef(null);
 
   const { user, logout, isAuthenticated, loading, setUser } = useAuth();
+  const { users: onlineUsers, initialized: onlineUsersInitialized, applyUserDiff: applyOnlineUsersDiff } = useOnlineUsers();
   // NOTE: setSfxVolume は state setter と衝突しやすいので別名にする
   const { installUnlockHandlers, setEnvVolume, setSfxVolume: setSfxVolumeGain, playEnv, playSfx } = useSound();
   const [currentView, setCurrentView] = useState('lobby');
@@ -278,6 +280,7 @@ const AppContent = () => {
     if (autoStopReviewRef.current) return;
     if (loading) return;
     if (!isAuthenticated) return;
+    if (!onlineUsersInitialized) return;
 
     const meIdRaw = (user?.user_id || user?._id || user?.id);
     const meId = meIdRaw != null ? String(meIdRaw) : '';
@@ -297,14 +300,14 @@ const AppContent = () => {
         // presence を作っておく（失敗しても続行）
         try { await api.post('/lobby/touch?force=1'); } catch {}
 
-        const r = await api.get('/lobby/online-users');
-        const arr = Array.isArray(r?.data?.users) ? r.data.users : [];
+        const arr = Array.isArray(onlineUsers) ? onlineUsers : [];
         const mine = arr.find(u => normalizeId(u.user_id) === meId);
         const myWaiting = (mine && typeof mine.waiting === 'string') ? mine.waiting : null;
 
         if (myWaiting === 'review') {
           const res = await api.post('/lobby/waiting/stop');
           if (res?.data?.success) {
+            try { applyOnlineUsersDiff([{ user_id: meId, waiting: 'lobby', waiting_info: {}, pending_offer: {} }], []); } catch {}
             setIsSpectator(false);
             setCurrentGameId(null);
             setCurrentView('lobby');
@@ -315,7 +318,7 @@ const AppContent = () => {
         try { console.warn('[autoStopReview] failed', e); } catch {}
       }
     })();
-  }, [loading, isAuthenticated, user?.user_id, user?._id, user?.id]);
+  }, [loading, isAuthenticated, onlineUsersInitialized, onlineUsers, user?.user_id, user?._id, user?.id]);
 
   const [shellWidthMode, setShellWidthMode] = useState(() => {
     // 対局画面での main-shell 横幅 (normal|wide)
@@ -1941,10 +1944,12 @@ return (
 const App = () => {
   return (
     <AuthProvider>
-      <LoginWarningLayer />
-      <AppContent />
-      <IncomingOfferLayer />
-      <OutgoingOfferLayer />
+      <OnlineUsersProvider>
+        <LoginWarningLayer />
+        <AppContent />
+        <IncomingOfferLayer />
+        <OutgoingOfferLayer />
+      </OnlineUsersProvider>
     </AuthProvider>
   );
 };

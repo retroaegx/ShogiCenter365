@@ -2,6 +2,7 @@ import { RefreshCcw, LogOut, Clock, Play, Square, Loader2, UserRound } from 'luc
 import api from '@/services/apiClient';
 import websocketService from '@/services/websocketService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnlineUsers } from '@/contexts/OnlineUsersContext';
 import useSound from '@/hooks/useSound';
 import WaitConfigModal from './WaitConfigModal';
 import { RATING_TAB_DEFS, getRatingTabs, bandOfRating } from '@/services/ratingBands';
@@ -109,7 +110,12 @@ export default function LobbyView({ onJoinGame, compact = false }) {
   // --------------------------------------
 const { user, logout } = useAuth();
   const isBanned = Boolean(user?.is_banned);
-  const [users, setUsers] = useState([]);
+  const onlineUsersCtx = useOnlineUsers() || {};
+  const users = Array.isArray(onlineUsersCtx.users) ? onlineUsersCtx.users : [];
+  const loading = !!onlineUsersCtx.loading;
+  const usersErrorCode = onlineUsersCtx.errorCode || '';
+  const refreshUsers = onlineUsersCtx.refreshUsers || (async () => {});
+  const applyUserDiff = onlineUsersCtx.applyUserDiff || (() => {});
     const [offerTarget, setOfferTarget] = useState(null);
   const [offerSubmitting, setOfferSubmitting] = useState(false);
   const [applyFailOpen, setApplyFailOpen] = useState(false);
@@ -144,8 +150,8 @@ const { user, logout } = useAuth();
       setErr(gameErrorMessage(code, fb, t('ui.components.lobby.lobbyview.k857d8f4f')));
     }
   };
-  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  const usersLoadError = usersErrorCode ? t("ui.components.lobby.lobbyview.k5b841145") : '';
   const [waitOpen, setWaitOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [stopping, setStopping] = useState(false);
@@ -205,63 +211,31 @@ const { user, logout } = useAuth();
   }
 
   async function doRefresh() {
+    let tokenChanged = false;
     try {
-  const res = await api.post('/lobby/touch?force=1');
-  const t = res?.data?.access_token;
-  if (t) {
-    localStorage.setItem('access_token', t);
-    localStorage.setItem('token', t);
-  }
-} catch (e) { /* ignore */ }
-    await fetchUsers();
-  }
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/lobby/online-users');
-      const list = Array.isArray(res.data?.users) ? res.data.users : [];
-      setUsers(list);
-      setErr('');
-    } catch (e) {
-      if (e?.response?.status !== 401) {
-        setErr(t("ui.components.lobby.lobbyview.k5b841145"));
+      const res = await api.post('/lobby/touch?force=1');
+      const tok = res?.data?.access_token;
+      if (tok) {
+        let prev = null;
+        try { prev = localStorage.getItem('access_token') || localStorage.getItem('token'); } catch {}
+        try { localStorage.setItem('access_token', tok); } catch {}
+        try { localStorage.setItem('token', tok); } catch {}
+        tokenChanged = (prev !== tok);
+        try {
+          if (tokenChanged) window.dispatchEvent(new CustomEvent('jwt_updated', { detail: { token: tok } }));
+        } catch {}
       }
-      console.error('online-users error', e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    } catch (e) { /* ignore */ }
 
-  const heartbeat = useCallback(async () => {
-    try {
-      await Promise.resolve() /* active removed */;
-    } catch (e) {
-      if (e?.response?.status !== 401) console.warn('heartbeat err', e);
+    if (!tokenChanged) {
+      try { await refreshUsers?.(); } catch {}
     }
-  }, []);
+  }
 
-  const usersTimerRef = useRef(null);
   const lastOfferRef = useRef({ key: null, ts: 0 });
-  
-  useEffect(() => {
-  // -- offer listeners start --
-  try {
-    if (typeof window !== 'undefined') {
-    }
-    if (typeof websocketService !== 'undefined' && websocketService?.on) {
-      try { websocketService.off('lobby_offer_update', onOffer); } catch {}
-      websocketService.on('lobby_offer_update', onOffer);
-    }
-  } catch {}
-  // -- offer listeners end --
 
-    fetchUsers();
-    if (!usersTimerRef.current) usersTimerRef.current = setInterval(fetchUsers, USERS_POLL_MS);
-    return () => { if (usersTimerRef.current) { clearInterval(usersTimerRef.current); usersTimerRef.current = null; } };
 
-  }, []);
-  // WebSocket: 対局申請をUIに反映
+// WebSocket: 対局申請をUIに反映
   useEffect(() => {
     const onOffer = (payload) => {
       const p = payload && payload.detail ? payload.detail : payload;
@@ -276,7 +250,7 @@ const { user, logout } = useAuth();
         lastOfferRef.current = { key, ts: now };
       } catch {}
 
-      // offer created → show incoming / also refresh presence so pending_offer is reflected
+      // offer created → show incoming
       if (p.type === 'offer_created') {
         try {
           const toId = idToStr(p.to_user_id || p.to);
@@ -291,8 +265,6 @@ const { user, logout } = useAuth();
               time_label: codeToName(p.time_code) || p.time_name || '',
               requested_game_type: p.requested_game_type || p.game_type,
             });
-            // pull latest presence (server also writes pending_offer on receiver)
-            if (typeof fetchUsers === 'function') { fetchUsers(); }
           }
         } catch (e) { /* ignore */ }
       }
@@ -313,67 +285,6 @@ const { user, logout } = useAuth();
       websocketService.off('offer_declined', onOffer);
     };
   }, [myId]);
-  // WebSocket: offer/online 更新イベントで即時に一覧を更新
-  useEffect(() => {
-    const refresh = () => { fetchUsers(); };
-    websocketService.on('lobby_offer_update', refresh);
-    websocketService.on('offer_created', refresh);
-    websocketService.on('offer_accepted', refresh);
-    websocketService.on('offer_declined', refresh);
-    websocketService.on('online_users_update', refresh);
-    return () => {
-      websocketService.off('lobby_offer_update', refresh);
-      websocketService.off('offer_created', refresh);
-      websocketService.off('offer_accepted', refresh);
-      websocketService.off('offer_declined', refresh);
-      websocketService.off('online_users_update', refresh);
-    };
-  }, [fetchUsers]);
-
-  // WebSocket: 対局申請をUIに反映
-  useEffect(() => {
-    const onOffer = (payload) => {
-      const p = payload && payload.detail ? payload.detail : payload;
-      if (!p) return;
-      // de-dup same offer-status bursts within 800ms (window + ws double wiring etc.)
-      try {
-        const key = [p.type, p.status, p.from_user_id || p.from, p.to_user_id || p.to].join(':');
-        const now = Date.now();
-        if (lastOfferRef.current && lastOfferRef.current.key === key && (now - lastOfferRef.current.ts) < 800) {
-          return;
-        }
-        lastOfferRef.current = { key, ts: now };
-      } catch {}
-
-      if (p.type === 'offer_created') {
-        const toId = idToStr(p.to_user_id || p.to);
-        if (toId === idToStr(myId)) {
-          setIncomingOffer({
-            from_user_id: p.from_user_id || p.from,
-            from_username: (p.from_user && p.from_user.username) || p.from_username || '',
-            from_rating: p.from_rating ?? (p.from_user && p.from_user.rating),
-            time_code: p.time_code,
-            time_label: codeToName(p.time_code) || p.time_name || '',
-            requested_game_type: p.requested_game_type || p.game_type,
-          });
-        }
-      }
-      if (p.type === 'offer_status' || p.type === 'offer_accepted' || p.type === 'offer_declined') {
-        setIncomingOffer(null);
-      }
-    };
-    websocketService.on('lobby_offer_update', onOffer);
-    websocketService.on('offer_created', onOffer);
-    websocketService.on('offer_accepted', onOffer);
-    websocketService.on('offer_declined', onOffer);
-    return () => {
-      websocketService.off('lobby_offer_update', onOffer);
-      websocketService.off('offer_created', onOffer);
-      websocketService.off('offer_accepted', onOffer);
-      websocketService.off('offer_declined', onOffer);
-    };
-  }, [myId]);
-
 useEffect(() => {
     if (activeTab !== null) return;
     const me = users.find(usr => idToStr(usr.user_id) === idToStr(myId));
@@ -471,11 +382,11 @@ const grouped = useMemo(() => {
         try { window.localStorage.removeItem('shogi_close_from_game'); } catch {}
         // サーバ側でロビーに戻す
         (async()=>{
-          try{ await api.post('/lobby/waiting/stop'); await fetchUsers(); }catch(e){}
+          try{ await api.post('/lobby/waiting/stop'); try { applyUserDiff([{ user_id: idToStr(myId), waiting: 'lobby', waiting_info: {}, pending_offer: {} }], []); } catch {} }catch(e){}
         })();
       }
     }catch{}
-  }, [myStatus, fetchUsers]);
+  }, [myStatus, myId]);
 
   const amWaiting = (myStatus === 'seeking') || (myStatus === 'pending');
   const iAmSeeking = (myStatus === 'seeking');
@@ -577,7 +488,7 @@ useEffect(() => {
       if (res.data?.success) {
         try { playEnv?.('waiting_start'); } catch {}
         setWaitOpen(false);
-        await fetchUsers();
+        try { applyUserDiff([{ user_id: idToStr(myId), waiting: 'seeking', waiting_info: (res?.data?.waiting_info || res?.data?.waitingInfo || {}), pending_offer: {} }], []); } catch {}
       } else {
         throw new Error('failed');
       }
@@ -603,7 +514,7 @@ useEffect(() => {
     try {
       const res = await api.post('/lobby/waiting/stop');
       if (res.data?.success) {
-        await fetchUsers();
+        try { applyUserDiff([{ user_id: idToStr(myId), waiting: 'lobby', waiting_info: {}, pending_offer: {} }], []); } catch {}
       } else {
         throw new Error('failed');
       }
@@ -716,6 +627,7 @@ useEffect(() => {
       {!compact && isBanned && <div className="mb-3 text-red-700 text-sm font-semibold">{t("ui.components.lobby.lobbyview.k38043e9c")}</div>}
 
       {!compact && err && <div className="mb-3 text-red-600 text-sm">{err}</div>}
+      {!compact && !err && usersLoadError && <div className="mb-3 text-red-600 text-sm">{usersLoadError}</div>}
 
       <div
         className="rounded-lg overflow-hidden shadow-2xl flex flex-col flex-1 min-h-0 backdrop-blur-[2px]"
@@ -1142,7 +1054,7 @@ useEffect(() => {
                       throw new Error('join_failed');
                     }
                     setOfferTarget(null);
-                    await fetchUsers();
+                    try { applyUserDiff([{ user_id: idToStr(myId), waiting: 'applying' }], []); } catch {}
                   } catch (e) {
                     console.error('join-by-user failed', e);
                     const data = e?.response?.data || {};

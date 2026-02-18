@@ -19,7 +19,9 @@ def _is_banned_user(db, user_oid: ObjectId) -> bool:
         return False
 
 def _db():
-    db = current_app.config.get('MONGO_DB') or getattr(current_app, 'mongo_db', None)
+    db = current_app.config.get('MONGO_DB')
+    if db is None:
+        db = getattr(current_app, 'mongo_db', None)
     if db is None:
         raise RuntimeError('MONGO_DB is not configured on current_app')
     return db

@@ -61,10 +61,20 @@ export const AuthProvider = ({ children }) => {
   const persistTokenAndLoadProfile = useCallback(async (t) => {
     if (!t) return null;
 
+    let prevTok = null;
+    try {
+      if (typeof window !== 'undefined') {
+        prevTok = window.localStorage.getItem('access_token') || window.localStorage.getItem('token');
+      }
+    } catch {}
+
     setToken(t);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('access_token', t);
       window.localStorage.setItem('token', t);
+      try {
+        if (prevTok !== t) window.dispatchEvent(new CustomEvent('jwt_updated', { detail: { token: t } }));
+      } catch {}
     }
 
     // Presence/keepalive (best-effort)

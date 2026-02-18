@@ -178,14 +178,9 @@ def _set_players_presence_review(game_doc, now=None):
         if getattr(res, "matched_count", 0) == 0 and getattr(res, "upserted_id", None) is None:
             raise RuntimeError(f"presence_update_no_effect_for_{role_label}")
 
-    # Review context: skip *waiting_changed* but still notify lobby to refresh presence.
-    sio = getattr(current_app, 'socketio', None)
-    if sio is not None:
-        try:
-            sio.emit('online_users_update', {'type': 'presence_changed'})
-        except Exception as _e:
-            # strict: surface errors
-            raise
+    # Review context: notify lobby via diff patches (no full refresh).
+    from src.services.online_users_emitter import emit_online_users_diff
+    emit_online_users_diff(db, None, changed_user_ids=[to_oid(s_uid, 'sente'), to_oid(g_uid, 'gote')])
     return
 
 
@@ -254,10 +249,13 @@ def _set_disconnect_timeout_presence(game_doc, dc_user_id, now=None):
         'last_seen_at': now,
     }}, upsert=True)
 
-    # ロビーへpresence更新を通知
-    sio = getattr(current_app, 'socketio', None)
-    if sio is not None:
-        sio.emit('online_users_update', {'type': 'presence_changed'})
+    # ロビーへpresence更新を通知（差分）
+    try:
+        from src.services.online_users_emitter import emit_online_users_diff
+        emit_online_users_diff(db, None, changed_user_ids=[dc_oid, peer_oid])
+    except Exception:
+        # presence 通知は best-effort
+        pass
 
     return {'ok': True, 'dc_role': dc_role}
 

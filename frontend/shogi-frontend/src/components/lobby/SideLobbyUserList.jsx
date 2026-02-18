@@ -1,16 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { UserRound } from 'lucide-react';
 import { t } from '@/i18n';
-import api from '@/services/apiClient';
 import LegionFlagIcon from '@/components/common/LegionFlagIcon';
+import { useOnlineUsers } from '@/contexts/OnlineUsersContext';
 
-const USERS_POLL_MS = 15000;
-
-const statusLabelOf = (status) => {
-  switch (status) {
+const statusLabelOf = (waiting) => {
+  switch (waiting) {
     case 'seeking':
       return t('ui.components.lobby.sidelobbyuserlist.k55e95614');
     case 'pending':
+    case 'applying':
       return t('ui.components.lobby.sidelobbyuserlist.k485c0c63');
     case 'playing':
       return t('ui.components.lobby.sidelobbyuserlist.kc0a194e7');
@@ -33,7 +32,7 @@ const getUserKey = (u) => {
 };
 
 const getUserName = (u) => {
-  return u?.username ?? u?.name ?? (u?.user_id != null ? t('ui.common.id_template', { id: u.user_id }) : t('ui.components.lobby.sidelobbyuserlist.kdbf11530'));
+  return u?.username ?? u?.name ?? t('ui.components.lobby.sidelobbyuserlist.kdbf11530');
 };
 
 const getUserRating = (u) => {
@@ -42,33 +41,12 @@ const getUserRating = (u) => {
 };
 
 export default function SideLobbyUserList() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState('');
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/lobby/online-users');
-      const list = Array.isArray(res?.data?.users) ? res.data.users : [];
-      setUsers(list);
-      setLoadError('');
-    } catch (e) {
-      if (e?.response?.status !== 401) {
-        setLoadError(t('ui.components.lobby.sidelobbyuserlist.ke8fe1290'));
-      }
-      // eslint-disable-next-line no-console
-      console.error('side-lobby online-users error', e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchUsers();
-    const id = setInterval(fetchUsers, USERS_POLL_MS);
-    return () => clearInterval(id);
-  }, [fetchUsers]);
+  const ctx = useOnlineUsers() || {};
+  const users = Array.isArray(ctx.users) ? ctx.users : [];
+  const loading = !!ctx.loading;
+  const initialized = !!ctx.initialized;
+  const errorCode = ctx.errorCode || '';
+  const loadError = errorCode ? t('ui.components.lobby.sidelobbyuserlist.ke8fe1290') : '';
 
   return (
     <div className="h-full flex flex-col p-3 text-sm">
@@ -82,7 +60,7 @@ export default function SideLobbyUserList() {
       )}
 
       <div className="flex-1 overflow-y-auto">
-        {loading && users.length === 0 ? (
+        {(loading && !initialized && users.length === 0) ? (
           <div className="text-xs text-slate-400">{t('ui.components.lobby.sidelobbyuserlist.kd1c13ac5')}</div>
         ) : users.length === 0 ? (
           <div className="text-xs text-slate-400">{t('ui.components.lobby.sidelobbyuserlist.k0306b239')}</div>
@@ -92,7 +70,7 @@ export default function SideLobbyUserList() {
               const key = getUserKey(u);
               const name = getUserName(u);
               const rating = getUserRating(u);
-              const statusLabel = statusLabelOf(u?.status);
+              const statusLabel = statusLabelOf(u?.waiting);
 
               return (
                 <li key={key} className="py-1">

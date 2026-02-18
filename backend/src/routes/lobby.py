@@ -7,6 +7,7 @@ import secrets
 import asyncio
 from src.config import TIME_CONTROLS
 from src.utils.maintenance_mode import is_maintenance_enabled, maintenance_message
+from src.services.online_users_emitter import emit_online_users_diff
 import re
 
 # ---- async bridge for sync Flask view ----
@@ -277,10 +278,21 @@ INVITES_COLL = 'lobby_invites'
 
 # ---- WebSocket notify helper (no circular import) ----
 def _get_socketio():
+    """Resolve SocketIO instance (extensions first, then app.config fallback)."""
     try:
-        return current_app.extensions.get('socketio')
+        ex = getattr(current_app, 'extensions', None) or {}
+        sio = ex.get('socketio')
+        if sio:
+            return sio
     except Exception:
-        return None
+        pass
+    try:
+        sio = current_app.config.get('SOCKETIO')
+        if sio:
+            return sio
+    except Exception:
+        pass
+    return None
 
 def _notify_lobby(event: str, payload: dict|None=None):
     s = _get_socketio()
@@ -290,7 +302,7 @@ def _notify_lobby(event: str, payload: dict|None=None):
     try:
         s.emit(event, payload or {}, room='lobby')
     except Exception as e:
-        logger.warning('notify failed: %s', e)
+        logger.warning('notify failed: %s', e, exc_info=True)
 def _user_room_name(user_id):
     try:
         s = str(user_id)
@@ -307,7 +319,7 @@ def _emit_to_user(user_id, event, payload):
     try:
         s.emit(event, payload or {}, room=_user_room_name(user_id))
     except Exception as e:
-        logger.warning('emit_to_user failed: %s', e)
+        logger.warning('emit_to_user failed: %s', e, exc_info=True)
 
 def _emit_offer_update(payload, to_user_id=None, from_user_id=None):
     sio = _get_socketio()
@@ -322,7 +334,7 @@ def _emit_offer_update(payload, to_user_id=None, from_user_id=None):
             if room: sio.emit('lobby_offer_update', payload or {}, room=room)
     except Exception as e:
         try:
-            logger.warning(f"_emit_offer_update failed: {e}")
+            logger.warning('_emit_offer_update failed: %s', e, exc_info=True)
         except Exception:
             pass
 
@@ -414,41 +426,6 @@ def _id_to_objid(s):
 @jwt_required(optional=True)
 def online_users():
     db = _db()
-
-    # --- Passive cleanup: expire pending offers older than 20s (no WS broadcast here) ---
-    try:
-        now_ms = int(datetime.utcnow().timestamp() * 1000)
-        TWENTY_S = 20 * 1000
-        # Only check receiver docs (have from_user_id)
-        stale = list(db[PRESENCE_COLL].find({
-            'waiting': 'applying',
-            'pending_offer.from_user_id': {'$exists': True}
-        }))
-        for doc in stale:
-            po = doc.get('pending_offer') or {}
-            created = int(po.get('created_at') or 0)
-            if created and (now_ms - created) >= TWENTY_S:
-                recv_uid = doc.get('user_id')
-                from_uid = _id_to_objid(po.get('from_user_id'))
-                # reset receiver
-                db[PRESENCE_COLL].update_one(
-                    {'user_id': recv_uid},
-                    {'$set': {'waiting': 'seeking', 'pending_offer': {}, 'last_seen_at': now_ms}},
-                    upsert=False
-                )
-                # reset applicant
-                if from_uid:
-                    db[PRESENCE_COLL].update_one(
-                        {'user_id': from_uid},
-                        {'$set': {'waiting': _restore_prev_waiting(db, from_uid, default='lobby'), 'pending_offer': {}, 'last_seen_at': now_ms}},
-                        upsert=False
-                    )
-                # no broadcast here (pull API should not push events)
-    except Exception as e:
-        try:
-            current_app.logger.warning('cleanup expired offers failed: %s', e)
-        except Exception:
-            pass
 
     # --- Build response ---
     cur = list(db[PRESENCE_COLL].find({}, {
@@ -619,7 +596,7 @@ def waiting_start():
             'user_id': me,
         }
         db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': set_fields}, upsert=True)
-        _notify_lobby('online_users_update', {'type': 'waiting_changed'})
+        emit_online_users_diff(db, changed_user_ids=[me])
         return _json({'success': True, 'waiting': 'seeking', 'waiting_info': waiting_info}, 200)
     except Exception as e:
         logger.error(f'/waiting/start failed: {e}', exc_info=True)
@@ -641,7 +618,7 @@ def waiting_stop():
         'last_seen_at': _now(),
     }})
 
-    _notify_lobby('online_users_update', {'type': 'waiting_changed'})
+    emit_online_users_diff(db, changed_user_ids=[me])
     return _json({'success': True}, 200)
 
 
@@ -961,7 +938,7 @@ def offer_accept():
                         _emit_offer_update(payload, to_user_id=me, from_user_id=from_uid)
                     except Exception:
                         pass
-                    _notify_lobby('online_users_update', {'type': 'waiting_changed'})
+                    emit_online_users_diff(db, changed_user_ids=[me, from_uid])
                     return _json({
                         'error': 'rating_out_of_range',
                         'allowed_min': int(r_min),
@@ -1004,7 +981,7 @@ def offer_accept():
                         _emit_offer_update(payload, to_user_id=me, from_user_id=from_uid)
                     except Exception:
                         pass
-                    _notify_lobby('online_users_update', {'type': 'waiting_changed'})
+                    emit_online_users_diff(db, changed_user_ids=[me, from_uid])
                     return _json({
                         'error': 'rating_gap_too_large',
                         'limit': 400,
@@ -1128,7 +1105,7 @@ def offer_accept():
             _emit_offer_update(payload, to_user_id=me, from_user_id=from_uid)
         except Exception:
             pass
-        _notify_lobby('online_users_update', {'type': 'waiting_changed'})
+        emit_online_users_diff(db, changed_user_ids=[me, from_uid])
         return _json({'success': True, 'game_id': game_id, 'role': my_role}, 200)
 
     except Exception as e:
@@ -1169,7 +1146,7 @@ def offer_decline():
         _emit_offer_update(payload, to_user_id=me, from_user_id=from_uid if from_uid else None)
     except Exception:
         pass
-    _notify_lobby('online_users_update', {'type': 'waiting_changed'})
+    emit_online_users_diff(db, changed_user_ids=[me] + ([from_uid] if from_uid else []))
     return _json({'success': True}, 200)
 
 
@@ -1223,7 +1200,7 @@ def offer_cancel():
         _emit_offer_update(payload, to_user_id=to_uid if to_uid else None, from_user_id=me)
     except Exception:
         pass
-    _notify_lobby('online_users_update', {'type': 'waiting_changed'})
+    emit_online_users_diff(db, changed_user_ids=[me] + ([to_uid] if to_uid else []))
     return _json({'success': True}, 200)
 
 @lobby_bp.route('/touch', methods=['POST'])
@@ -1233,7 +1210,8 @@ def touch():
     me = _id_to_objid(get_jwt_identity())
     if not me:
         return _json({'error': 'invalid_identity'}, 400)
-    db[PRESENCE_COLL].update_one(
+    force = str(request.args.get('force') or '').strip()
+    res = db[PRESENCE_COLL].update_one(
         {'user_id': me},
         {
             '$set': {
@@ -1248,6 +1226,14 @@ def touch():
         },
         upsert=True
     )
+
+    # 他ユーザー側へ: ログイン(初回upsert)やforce=1のときは差分を通知する
+    try:
+        inserted = getattr(res, 'upserted_id', None) is not None
+    except Exception:
+        inserted = False
+    if inserted or force == '1':
+        emit_online_users_diff(db, changed_user_ids=[me])
 
     # 残り有効時間を確認して、5分以内なら新しいトークンを発行
     try:

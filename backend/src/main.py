@@ -395,6 +395,15 @@ try:
     except Exception as e:
         app.logger.warning("Analysis worker init failed: %s", e, exc_info=True)
 
+
+
+    try:
+        # Online users diff broadcaster (presence changes via Socket.IO; FE should not poll)
+        from src.workers.online_users_diff_worker import start_online_users_diff_worker
+        start_online_users_diff_worker(app, socketio, interval_sec=1.0, offer_timeout_ms=20_000)
+        app.logger.info("Online users diff worker initialized")
+    except Exception as e:
+        app.logger.warning("Online users diff worker init failed: %s", e, exc_info=True)
     from src.routes.game import init_game_routes
     init_game_routes(app, gs)  # ★ 引数なしの呼び出しは不可
     app.logger.info('BOUND game_service: %s', getattr(app, 'game_service', None))

@@ -30,6 +30,7 @@ import AnalysisPvReplayOverlay from '@/components/game/AnalysisPvReplayOverlay';
 if (typeof window !== 'undefined') { window.__gameFinishedGate ||= {}; }
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnlineUsers } from '@/contexts/OnlineUsersContext';
 import { t, getLanguage } from '@/i18n';
 import { gameErrorMessage } from '@/i18n/gameErrors';
 
@@ -848,8 +849,10 @@ const GameView = ({
   // Smartphone only: prevent accidental browser back (gesture/back button) from leaving the match screen.
   useBackNavigationLock(isMobile);
   const { user, fetchProfile } = useAuth();
-    const { playEnv, playSfx, preload } = useSound();
-const exitSoundPlayedRef = useRef(false);
+  const onlineUsersCtx = useOnlineUsers() || {};
+  const { getUserById: getOnlineUserById, applyUserDiff: applyOnlineUsersDiff } = onlineUsersCtx;
+  const { playEnv, playSfx, preload } = useSound();
+  const exitSoundPlayedRef = useRef(false);
 
   const [gameState, setGameState] = useState(null);
   const [coordVisibleInner, setCoordVisibleInner] = useState(true);
@@ -1719,17 +1722,12 @@ useEffect(() => {
     //    ※ ただし review→lobby への遷移 API に失敗した場合はエラーを投げる（フォールバックせず通知）
     const meId = (user?.user_id || user?._id || user?.id) ? String(user.user_id || user._id || user.id) : '';
     let myWaiting = null;
-
     try {
-      const r = await api.get('/lobby/online-users');
-      const arr = Array.isArray(r?.data?.users) ? r.data.users : [];
-      const mine = arr.find(u =>
-        String(u.user_id?.$oid || u.user_id?.oid || u.user_id?.id || u.user_id || '') === meId
-      );
+      const mine = (typeof getOnlineUserById === 'function') ? getOnlineUserById(meId) : null;
       myWaiting = mine?.waiting ?? null;
     } catch (e) {
       // 取得失敗でも閉じるのを妨げない
-      console.warn('online-users fetch failed (allow close)', e);
+      try { console.warn('online-users context read failed (allow close)', e); } catch {}
       myWaiting = null;
     }
 
@@ -1744,12 +1742,14 @@ useEffect(() => {
       if (!res?.data?.success) {
         throw new Error('failed_to_set_lobby_status');
       }
+      try { applyOnlineUsersDiff?.([{ user_id: meId, waiting: 'lobby', waiting_info: {}, pending_offer: {} }], []); } catch {}
     }
 
     if (onRequestClose) onRequestClose();
     return true;
   };
-const finishedRef = useRef(false);
+
+  const finishedRef = useRef(false);
   const finishedOnceRef = useRef({});
   const modalOpenRef = useRef(false);
 

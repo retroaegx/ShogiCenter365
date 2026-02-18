@@ -9,7 +9,9 @@ from bson import ObjectId
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 def _db():
-    db = getattr(current_app, 'mongo_db', None) or current_app.config.get('MONGO_DB', None)
+    db = getattr(current_app, 'mongo_db', None)
+    if db is None:
+        db = current_app.config.get('MONGO_DB', None)
     if db is None:
         raise RuntimeError('database handle not found')
     return db

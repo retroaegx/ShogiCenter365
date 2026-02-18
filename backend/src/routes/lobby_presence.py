@@ -19,7 +19,9 @@ def _db():
 @presence_bp.record
 def _ensure_indexes(setup_state):
     app = setup_state.app
-    db = getattr(app, "mongo_db", None) or app.config.get("MONGO_DB", None)
+    db = getattr(app, "mongo_db", None)
+    if db is None:
+        db = app.config.get("MONGO_DB", None)
     if db is None:
         return
     coll = db["online_users"]

@@ -1033,6 +1033,11 @@ class WebSocketManager:
                                             db['online_users'].update_one({'user_id': uid_obj}, {'$set': {'waiting': 'lobby', 'waiting_info': {}}})
                                         else:
                                             db['online_users'].update_one({'user_id': user_id}, {'$set': {'waiting': 'lobby', 'waiting_info': {}}})
+                                        try:
+                                            from src.services.online_users_emitter import emit_online_users_diff
+                                            emit_online_users_diff(db, self.socketio, changed_user_ids=[uid_obj or user_id])
+                                        except Exception:
+                                            pass
                 except Exception as e:
                     logger.warning('auto-rejoin on connect failed: %s', e, exc_info=True)
             except Exception as e:
@@ -1168,6 +1173,10 @@ class WebSocketManager:
             sid = request.sid
             join_room('lobby', sid=sid)
             info = self.connected_users.get(sid) or {}
+            try:
+                logger.info('join_lobby sid=%s user_id=%s', sid, info.get('user_id'))
+            except Exception:
+                pass
             info['current_room'] = 'lobby'
             self.connected_users[sid] = info
             emit('joined_lobby', {'room': 'lobby'}, room=sid)
@@ -1185,6 +1194,10 @@ class WebSocketManager:
         def _leave_lobby(data=None):
             sid = request.sid
             leave_room('lobby', sid=sid)
+            try:
+                logger.info('leave_lobby sid=%s user_id=%s', sid, (self.connected_users.get(sid) or {}).get('user_id'))
+            except Exception:
+                pass
             info = self.connected_users.get(sid) or {}
             if info.get('current_room') == 'lobby':
                 info['current_room'] = None
@@ -1329,9 +1342,11 @@ class WebSocketManager:
                                             {'$set': {'waiting': 'spectating', 'waiting_info': {}, 'last_seen_at': datetime.utcnow()}},
                                             upsert=True,
                                         )
-                                        sio = getattr(current_app, 'socketio', None)
-                                        if sio is not None:
-                                            sio.emit('online_users_update', {'type': 'waiting_changed'}, room='lobby')
+                                        try:
+                                            from src.services.online_users_emitter import emit_online_users_diff
+                                            emit_online_users_diff(db, self.socketio, changed_user_ids=[_OID(str(uid))])
+                                        except Exception:
+                                            pass
                             except Exception:
                                 logger.warning('spectator presence update failed', exc_info=True)
 
@@ -1565,9 +1580,11 @@ class WebSocketManager:
                                     {'user_id': _OID(str(uid))},
                                     {'$set': {'waiting': 'lobby', 'waiting_info': {}, 'last_seen_at': datetime.utcnow()}},
                                 )
-                                sio = getattr(current_app, 'socketio', None)
-                                if sio is not None:
-                                    sio.emit('online_users_update', {'type': 'waiting_changed'}, room='lobby')
+                                try:
+                                    from src.services.online_users_emitter import emit_online_users_diff
+                                    emit_online_users_diff(db2, self.socketio, changed_user_ids=[_OID(str(uid))])
+                                except Exception:
+                                    pass
                         except Exception:
                             logger.warning('spectator presence reset failed', exc_info=True)
                 except Exception:
@@ -2271,9 +2288,11 @@ class WebSocketManager:
                                                 pres = ou_coll.find_one({'user_id': uid_oid}) or {}
                                                 if pres.get('waiting') == 'spectating':
                                                     ou_coll.update_one({'user_id': uid_oid}, {'$set': {'waiting': 'lobby', 'waiting_info': {}, 'last_seen_at': datetime.utcnow()}})
-                                                    sio = getattr(current_app, 'socketio', None)
-                                                    if sio is not None:
-                                                        sio.emit('online_users_update', {'type': 'waiting_changed'}, room='lobby')
+                                                    try:
+                                                        from src.services.online_users_emitter import emit_online_users_diff
+                                                        emit_online_users_diff(db2, self.socketio, changed_user_ids=[uid_oid])
+                                                    except Exception:
+                                                        pass
                                         except Exception:
                                             # presence 更新は best-effort
                                             pass
