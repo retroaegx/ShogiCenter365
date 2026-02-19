@@ -347,7 +347,9 @@ class YaneuraOuEngine:
         multipv = 1
         score_cp: Optional[int] = None
         score_mate: Optional[int] = None
-        pv_moves: List[str] = Field(default_factory=list)
+        pv_moves: List[str] = []
+        depth: Optional[int] = None
+        nodes: Optional[int] = None
 
         i = 1
         pv_start = None
@@ -356,6 +358,18 @@ class YaneuraOuEngine:
             if t == "multipv" and i + 1 < len(tokens):
                 try:
                     multipv = int(tokens[i + 1])
+                except ValueError:
+                    pass
+                i += 2
+            elif t == "depth" and i + 1 < len(tokens):
+                try:
+                    depth = int(tokens[i + 1])
+                except ValueError:
+                    pass
+                i += 2
+            elif t == "nodes" and i + 1 < len(tokens):
+                try:
+                    nodes = int(tokens[i + 1])
                 except ValueError:
                     pass
                 i += 2
@@ -384,6 +398,8 @@ class YaneuraOuEngine:
             "score_cp": score_cp,
             "score_mate": score_mate,
             "pv": pv_moves,
+            "depth": depth,
+            "nodes": nodes,
             "raw": line,
         }
 
@@ -443,6 +459,8 @@ class YaneuraOuEngine:
 
             pv_map: Dict[int, Dict[str, Any]] = {}
             last_info: Optional[str] = None
+            last_depth: Optional[int] = None
+            last_nodes: Optional[int] = None
             bestmove: Optional[str] = None
             ponder: Optional[str] = None
 
@@ -455,7 +473,14 @@ class YaneuraOuEngine:
                     last_info = line
                     parsed = self._parse_info_line(line)
                     if parsed is not None:
-                        pv_map[parsed["multipv"]] = parsed
+                        if parsed.get("depth") is not None:
+                            last_depth = parsed.get("depth")
+                        if parsed.get("nodes") is not None:
+                            last_nodes = parsed.get("nodes")
+
+                        # PV が無い info で上書きしない（エンジンによっては partial info が混ざる）
+                        if parsed.get("pv"):
+                            pv_map[parsed["multipv"]] = parsed
                 elif line.startswith("bestmove"):
                     parts = line.split()
                     if len(parts) >= 2:
@@ -469,11 +494,20 @@ class YaneuraOuEngine:
             main_score_cp = None
             main_score_mate = None
             main_pv: List[str] = []
+            main_depth: Optional[int] = None
+            main_nodes: Optional[int] = None
             if pv_list:
-                main = pv_list[0]
+                main = pv_map.get(1) or pv_list[0]
                 main_score_cp = main.get("score_cp")
                 main_score_mate = main.get("score_mate")
                 main_pv = main.get("pv") or []
+                main_depth = main.get("depth")
+                main_nodes = main.get("nodes")
+
+            if main_depth is None:
+                main_depth = last_depth
+            if main_nodes is None:
+                main_nodes = last_nodes
 
             return {
                 "bestmove": bestmove,
@@ -483,6 +517,8 @@ class YaneuraOuEngine:
                 "main_pv": main_pv,
                 "multipv": pv_list,
                 "last_info": last_info,
+                "depth": main_depth,
+                "nodes": main_nodes,
                 "debug_position_cmd": position_cmd,
                 "debug_go_cmd": go_cmd,
                 "debug_sfen": sfen,
@@ -644,6 +680,9 @@ class AnalyzeResponse(BaseModel):
     main_pv: List[str] = Field(default_factory=list)
     multipv: List[Dict[str, Any]] = Field(default_factory=list)
     last_info: Optional[str]
+    # Convenience fields (the backend stores this payload in Mongo as-is)
+    depth: Optional[int] = None
+    nodes: Optional[int] = None
     debug_position_cmd: Optional[str] = None
     debug_go_cmd: Optional[str] = None
     debug_sfen: Optional[str] = None
