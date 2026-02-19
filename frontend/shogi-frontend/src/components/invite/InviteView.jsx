@@ -11,6 +11,44 @@ import GoogleProfileSetupForm from '@/components/auth/GoogleProfileSetupForm';
 import AuthTabbedContainer from '@/components/auth/AuthTabbedContainer';
 import { Loader2 } from 'lucide-react';
 
+const GAME_TYPE_BADGE_KEY = {
+  rating: 'ui.components.lobby.lobbyview.gameTypeBadge.rating',
+  free: 'ui.components.lobby.lobbyview.gameTypeBadge.free',
+};
+
+const HANDICAP_LABEL_KEY = {
+  // 招待/ロビー/申込側では「平手」だけだと先後が読めないので詳細表記を使う
+  even_lower_first: 'ui.components.lobby.waitconfigmodal.handicap.evenLowerFirstDetail',
+  lance: 'ui.components.lobby.waitconfigmodal.handicap.lance',
+  double_lance: 'ui.components.lobby.waitconfigmodal.handicap.doubleLance',
+  bishop: 'ui.components.lobby.waitconfigmodal.handicap.bishop',
+  rook: 'ui.components.lobby.waitconfigmodal.handicap.rook',
+  rook_lance: 'ui.components.lobby.waitconfigmodal.handicap.rookLance',
+  rook_double_lance: 'ui.components.lobby.waitconfigmodal.handicap.rookDoubleLance',
+  two_piece: 'ui.components.lobby.waitconfigmodal.handicap.twoPiece',
+  four_piece: 'ui.components.lobby.waitconfigmodal.handicap.fourPiece',
+  six_piece: 'ui.components.lobby.waitconfigmodal.handicap.sixPiece',
+  eight_piece: 'ui.components.lobby.waitconfigmodal.handicap.eightPiece',
+  ten_piece: 'ui.components.lobby.waitconfigmodal.handicap.tenPiece',
+};
+
+function buildInviteConditionTags(waitingInfo) {
+  const wi = waitingInfo || {};
+  const gameType = String(wi.game_type ?? wi.gameType ?? 'rating').toLowerCase();
+  const reserved = Boolean(wi.reserved);
+  const he = Boolean(wi.handicap_enabled ?? wi.handicapEnabled);
+  const ht = wi.handicap_type ?? wi.handicapType;
+
+  const tags = [];
+  tags.push(t(GAME_TYPE_BADGE_KEY[gameType] || GAME_TYPE_BADGE_KEY.rating));
+  if (reserved) tags.push(t('ui.components.lobby.lobbyview.reservedBadge'));
+  if (gameType === 'free' && he && ht) {
+    const k = HANDICAP_LABEL_KEY[String(ht)] || '';
+    if (k) tags.push(t(k));
+  }
+  return tags.filter(Boolean);
+}
+
 function idToStr(v) {
   try {
     if (!v) return '';
@@ -46,7 +84,11 @@ export default function InviteView({ token, onClose, onJoinGame }) {
 
   const inviter = info?.inviter || null;
   const waiting = info?.waiting || '';
+  const waitingInfo = info?.waiting_info || info?.waitingInfo || null;
   const inviterIsGuest = inviter?.user_kind === 'guest' || inviter?.is_guest;
+
+  const conditionTags = useMemo(() => buildInviteConditionTags(waitingInfo), [waitingInfo]);
+  const conditionText = useMemo(() => (conditionTags.length ? conditionTags.join('・') : ''), [conditionTags]);
 
   const myId = useMemo(() => idToStr(user?.id || user?.user_id || user?._id), [user]);
 
@@ -192,6 +234,19 @@ export default function InviteView({ token, onClose, onJoinGame }) {
                 ) : null}
               </div>
               <div className="mt-1 text-sm text-gray-700">{t("ui.components.invite.inviteview.ka08d5721", { status: waitingLabel })}</div>
+
+              {conditionTags.length ? (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {conditionTags.map((s, idx) => (
+                    <span
+                      key={`${idx}-${s}`}
+                      className="inline-flex items-center px-2 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[11px] leading-none"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </>
           )}
         </div>
@@ -282,6 +337,7 @@ export default function InviteView({ token, onClose, onJoinGame }) {
           defaultCode={timeControls?.[0]?.code}
           title={t("ui.components.invite.inviteview.kcedb6d49")}
           ratingNote={inviterIsGuest ? t('ui.components.invite.inviteview.k47bff6be') : ''}
+          conditionText={conditionText}
           onClose={() => setOfferOpen(false)}
           onSubmit={doOffer}
         />

@@ -26,9 +26,35 @@ const statusLabelOf = (w) => {
   return t('ui.components.lobby.lobbyview.k479954f1');
 };
 
+const GAME_TYPE_BADGE_KEY = {
+  rating: 'ui.components.lobby.lobbyview.gameTypeBadge.rating',
+  free: 'ui.components.lobby.lobbyview.gameTypeBadge.free',
+};
+
+const HANDICAP_LABEL_KEY = {
+  // ロビー/申込側では「平手」だけだと先後が読めないので、平手だけ詳細表記を使う
+  even_lower_first: 'ui.components.lobby.waitconfigmodal.handicap.evenLowerFirstDetail',
+  lance: 'ui.components.lobby.waitconfigmodal.handicap.lance',
+  double_lance: 'ui.components.lobby.waitconfigmodal.handicap.doubleLance',
+  bishop: 'ui.components.lobby.waitconfigmodal.handicap.bishop',
+  rook: 'ui.components.lobby.waitconfigmodal.handicap.rook',
+  rook_lance: 'ui.components.lobby.waitconfigmodal.handicap.rookLance',
+  rook_double_lance: 'ui.components.lobby.waitconfigmodal.handicap.rookDoubleLance',
+  two_piece: 'ui.components.lobby.waitconfigmodal.handicap.twoPiece',
+  four_piece: 'ui.components.lobby.waitconfigmodal.handicap.fourPiece',
+  six_piece: 'ui.components.lobby.waitconfigmodal.handicap.sixPiece',
+  eight_piece: 'ui.components.lobby.waitconfigmodal.handicap.eightPiece',
+  ten_piece: 'ui.components.lobby.waitconfigmodal.handicap.tenPiece',
+};
+
+const handicapLabel = (code) => {
+  const k = HANDICAP_LABEL_KEY[code];
+  return k ? t(k) : '';
+};
+
 // src/components/lobby/LobbyView.jsx
 
-function OfferModal({ open, onClose, onSubmit, defaultCode, options = [], submitting = false, ratingNote }) {
+function OfferModal({ open, onClose, onSubmit, defaultCode, options = [], submitting = false, ratingNote, conditionText }) {
   const [code, setCode] = useState(defaultCode || (options[0]?.code ?? ''));
   useEffect(() => { if (open) setCode(defaultCode || (options[0]?.code ?? '')); }, [open, defaultCode, options]);
   if (!open) return null;
@@ -36,6 +62,11 @@ function OfferModal({ open, onClose, onSubmit, defaultCode, options = [], submit
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] card-like shogi-merge">
       <div className="bg-white rounded-xl p-4 w-[340px]">
         <div className="text-lg font-semibold mb-2">{t("ui.components.lobby.lobbyview.k1a9bf87b")}</div>
+        {conditionText ? (
+          <div className="mb-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1" style={{ fontFamily: 'serif' }}>
+            {conditionText}
+          </div>
+        ) : null}
         <div className="text-sm mb-1">{t("ui.components.lobby.lobbyview.k21e72ec7")}</div>
         <div className="flex flex-wrap gap-2 mb-2">
           {options.map(opt => (
@@ -168,7 +199,14 @@ const { user, logout } = useAuth();
   }, [user?.user_id, user?._id, user?.id, user?.username]);
 
   const readWaitCfg = useCallback((key) => {
-    const def = { useRange: true, rateSpan: 300 };
+    const def = {
+      useRange: true,
+      rateSpan: 300,
+      gameType: 'rating',
+      reservedWait: false,
+      handicapEnabled: false,
+      handicapType: 'even_lower_first',
+    };
     try {
       if (typeof window === 'undefined' || !window.localStorage) return def;
       const raw = window.localStorage.getItem(key);
@@ -178,9 +216,31 @@ const { user, logout } = useAuth();
       const spanRaw = (obj && typeof obj === 'object') ? obj.rateSpan : undefined;
       const spanN = Number(spanRaw);
       const span = Number.isFinite(spanN) ? Math.floor(spanN) : def.rateSpan;
+
+      const gtRaw = (obj && typeof obj === 'object') ? (obj.gameType ?? obj.game_type) : undefined;
+      const gameType = (gtRaw === 'free' || gtRaw === 'rating') ? gtRaw : def.gameType;
+
+      const reservedRaw = (obj && typeof obj === 'object') ? (obj.reservedWait ?? obj.reserved ?? obj.hasReservation) : undefined;
+      const reservedWait = !!reservedRaw;
+
+      const heRaw = (obj && typeof obj === 'object') ? (obj.handicapEnabled ?? obj.handicap_enabled) : undefined;
+      let handicapEnabled = !!heRaw;
+
+      const htRaw = (obj && typeof obj === 'object') ? (obj.handicapType ?? obj.handicap_type) : undefined;
+      let handicapType = (typeof htRaw === 'string' && htRaw.trim()) ? htRaw.trim() : def.handicapType;
+
+      // Rating対局なら駒落ちは強制OFF
+      if (gameType !== 'free') {
+        handicapEnabled = false;
+      }
+
       return {
         useRange,
         rateSpan: WAIT_CFG_SPANS.includes(span) ? span : def.rateSpan,
+        gameType,
+        reservedWait,
+        handicapEnabled,
+        handicapType,
       };
     } catch {
       return def;
@@ -190,9 +250,16 @@ const { user, logout } = useAuth();
   const writeWaitCfg = useCallback((key, cfg) => {
     try {
       if (typeof window === 'undefined' || !window.localStorage) return;
+      const gt = (cfg?.gameType === 'free' || cfg?.gameType === 'rating') ? cfg.gameType : 'rating';
+      const he = (gt === 'free') ? !!cfg?.handicapEnabled : false;
+      const ht = (typeof cfg?.handicapType === 'string' && cfg.handicapType.trim()) ? cfg.handicapType.trim() : 'even_lower_first';
       const obj = {
         useRange: !!cfg?.useRange,
         rateSpan: WAIT_CFG_SPANS.includes(Number(cfg?.rateSpan)) ? Number(cfg?.rateSpan) : 300,
+        gameType: gt,
+        reservedWait: !!cfg?.reservedWait,
+        handicapEnabled: he,
+        handicapType: ht,
       };
       window.localStorage.setItem(key, JSON.stringify(obj));
     } catch {}
@@ -471,9 +538,21 @@ useEffect(() => {
       const raw = payload?.rateSpan;
       const hasSpan = (raw !== null && raw !== undefined && Number.isFinite(Number(raw)));
       const span = hasSpan ? Math.floor(Number(raw)) : (waitRatingCfg?.rateSpan ?? 300);
+
+      const gtIn = payload?.gameType;
+      const gt = (gtIn === 'free' || gtIn === 'rating') ? gtIn : (waitRatingCfg?.gameType ?? 'rating');
+      const reservedWait = !!payload?.reservedWait;
+      const he = (gt === 'free') ? !!payload?.handicapEnabled : false;
+      const htIn = payload?.handicapType;
+      const ht = (typeof htIn === 'string' && htIn.trim()) ? htIn.trim() : (waitRatingCfg?.handicapType ?? 'even_lower_first');
+
       const next = {
         useRange: !!hasSpan,
         rateSpan: WAIT_CFG_SPANS.includes(span) ? span : 300,
+        gameType: gt,
+        reservedWait,
+        handicapEnabled: he,
+        handicapType: ht,
       };
       writeWaitCfg(waitCfgKey, next);
       setWaitRatingCfg(next);
@@ -484,6 +563,9 @@ useEffect(() => {
         game_type: payload.gameType,
         time_code: (name2code[payload.timeControl] ?? payload.timeControl),
         rating_range: payload.rateSpan ?? payload.ratingRange,
+        reserved: !!payload.reservedWait,
+        handicap_enabled: !!payload.handicapEnabled,
+        handicap_type: payload.handicapType,
       });
       if (res.data?.success) {
         try { playEnv?.('waiting_start'); } catch {}
@@ -691,6 +773,29 @@ useEffect(() => {
                       : (usr.waiting === 'review' ? t('ui.components.lobby.lobbyview.k64aae95e') : t('ui.components.lobby.lobbyview.k69078300')))));
 
 
+              const wi = (usr && typeof usr === 'object') ? (usr.waiting_info || usr.waitingInfo || {}) : {};
+              const gtRaw = (wi && typeof wi === 'object') ? (wi.game_type ?? wi.gameType) : undefined;
+              const gameType = (gtRaw === 'free' || gtRaw === 'rating') ? gtRaw : 'rating';
+              const isSeeking = usr.waiting === 'seeking';
+              const reserved = !!((wi && typeof wi === 'object') ? (wi.reserved ?? wi.reservedWait ?? wi.has_reservation ?? wi.hasReservation) : false);
+              const he = !!((wi && typeof wi === 'object') ? (wi.handicap_enabled ?? wi.handicapEnabled) : false);
+              const htRaw = (wi && typeof wi === 'object') ? (wi.handicap_type ?? wi.handicapType) : null;
+              const handicapType = (typeof htRaw === 'string' && htRaw.trim()) ? htRaw.trim() : null;
+
+              const tags = [];
+              if (isSeeking) {
+                tags.push({ kind: 'gameType', text: t(GAME_TYPE_BADGE_KEY[gameType] || GAME_TYPE_BADGE_KEY.rating) });
+                if (reserved) tags.push({ kind: 'reserved', text: t('ui.components.lobby.lobbyview.reservedBadge') });
+                if (gameType === 'free' && he && handicapType) {
+                  const hl = handicapLabel(handicapType);
+                  if (hl) tags.push({ kind: 'handicap', text: hl });
+                }
+              }
+
+
+
+              const tagText = tags.map((t) => t.text).join('・');
+
               if (compact) {
                 const name = (usr.username || usr.name || '—');
                 const rRaw = (usr.rating ?? usr.rate ?? usr.rating_value);
@@ -744,6 +849,14 @@ useEffect(() => {
                     <span className={"shrink-0 ml-1 px-2 py-0.5 rounded text-[10px] leading-none " + badgeClsCompact}>
                       {statusText}
                     </span>
+                    {tagText ? (
+                      <span
+                        className="shrink-0 ml-1 px-1.5 py-0.5 rounded text-[9px] leading-none bg-amber-50 text-amber-800 border border-amber-200 max-w-[160px] truncate"
+                        title={tagText}
+                      >
+                        {tagText}
+                      </span>
+                    ) : null}
                   </div>
                 );
               }
@@ -835,26 +948,41 @@ useEffect(() => {
                     animation: `slideIn 0.25s ease ${index * 0.02}s both`,
                   }}
                 >
-                  {/* プレイヤー名 */}
+                  {/* プレイヤー名 + タグ */}
                   <div className="flex items-center gap-2 relative z-10 min-w-0">
                     <div className="relative flex-shrink-0">
                       <div className={`w-2.5 h-2.5 rounded-full border-2 ${dotCls}`} />
                     </div>
                     <LegionFlagIcon code={usr.legion} size={16} className="flex-shrink-0" />
-                    <UserStatsOverlay userId={uidStr} align="start">
-                      <button
-                        type="button"
-                        className={`text-sm truncate text-left bg-transparent border-0 p-0 m-0 hover:underline underline-offset-2 focus:outline-none ${isMe ? 'text-amber-900 font-bold' : 'text-amber-800'}`}
-                        style={{ fontFamily: 'serif' }}
-                      >
-                        {usr.username ?? usr.name ?? '(no name)'}
-                      </button>
-                    </UserStatsOverlay>
-                    {isMe && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-amber-800 text-amber-100 rounded-sm flex-shrink-0">
-                        {t("ui.components.lobby.lobbyview.k55e9a3f9")}
-                      </span>
-                    )}
+
+                    <div className="min-w-0 flex items-center gap-2 flex-1">
+                      <UserStatsOverlay userId={uidStr} align="start">
+                        <button
+                          type="button"
+                          className={`text-sm truncate text-left bg-transparent border-0 p-0 m-0 hover:underline underline-offset-2 focus:outline-none ${isMe ? 'text-amber-900 font-bold' : 'text-amber-800'}`}
+                          style={{ fontFamily: 'serif' }}
+                        >
+                          {usr.username ?? usr.name ?? '(no name)'}
+                        </button>
+                      </UserStatsOverlay>
+
+                      {isMe && (
+                        <span className="text-[9px] px-1.5 py-0.5 bg-amber-800 text-amber-100 rounded-sm flex-shrink-0">
+                          {t("ui.components.lobby.lobbyview.k55e9a3f9")}
+                        </span>
+                      )}
+
+                      {isSeeking && tagText ? (
+                        <span
+                          className="ml-auto sm:ml-0 min-w-0 flex justify-end flex-[0_1_220px] sm:flex-[0_1_360px]"
+                          title={tagText}
+                        >
+                          <span className="inline-flex max-w-full items-center px-2 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[11px] leading-none">
+                            <span className="truncate">{tagText}</span>
+                          </span>
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
 
@@ -921,11 +1049,11 @@ useEffect(() => {
                   {/* ステータス */}
                   <div className="hidden sm:block text-center relative z-10">
                     <span
-                      className={`text-[11px] px-2 py-1 rounded inline-block w-20 text-center ${badgeCls}`}
-                      style={{ fontFamily: 'serif' }}
-                    >
-                      {statusText}
-                    </span>
+                        className={`text-[11px] px-2 py-1 rounded inline-block w-20 text-center ${badgeCls}`}
+                        style={{ fontFamily: 'serif' }}
+                      >
+                        {statusText}
+                      </span>
                   </div>
 
                   {/* 時間 */}
@@ -1031,6 +1159,23 @@ useEffect(() => {
                   const byName = info.time_name ? name2code[info.time_name] : undefined; return info.time_code ?? byName ?? timeControls?.[0]?.code;
                 })()}
                 ratingNote={(offerTarget?.user_kind === "guest" || offerTarget?.is_guest) ? t("ui.components.lobby.lobbyview.k47bff6be") : ""}
+                conditionText={( () => {
+                  const wi = (offerTarget && typeof offerTarget === 'object') ? (offerTarget.waiting_info || offerTarget.waitingInfo || {}) : {};
+                  const gtRaw = (wi && typeof wi === 'object') ? (wi.game_type ?? wi.gameType) : undefined;
+                  const gameType = (gtRaw === 'free' || gtRaw === 'rating') ? gtRaw : 'rating';
+                  const reserved = !!((wi && typeof wi === 'object') ? (wi.reserved ?? wi.reservedWait ?? wi.has_reservation ?? wi.hasReservation) : false);
+                  const he = !!((wi && typeof wi === 'object') ? (wi.handicap_enabled ?? wi.handicapEnabled) : false);
+                  const htRaw = (wi && typeof wi === 'object') ? (wi.handicap_type ?? wi.handicapType) : null;
+                  const handicapType = (typeof htRaw === 'string' && htRaw.trim()) ? htRaw.trim() : null;
+                  const tags = [];
+                  tags.push(t(GAME_TYPE_BADGE_KEY[gameType] || GAME_TYPE_BADGE_KEY.rating));
+                  if (reserved) tags.push(t('ui.components.lobby.lobbyview.reservedBadge'));
+                  if (gameType === 'free' && he && handicapType) {
+                    const hl = handicapLabel(handicapType);
+                    if (hl) tags.push(hl);
+                  }
+                  return tags.filter(Boolean).join('・');
+                })()}
                 onClose={() => {
                   if (offerSubmitting) return;
                   setOfferTarget(null);

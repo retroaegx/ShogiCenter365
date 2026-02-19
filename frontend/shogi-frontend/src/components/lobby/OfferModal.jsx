@@ -9,6 +9,7 @@ export default function OfferModal({
   options = [],
   title,
   ratingNote,
+  conditionText,
 }) {
   const [code, setCode] = useState(defaultCode || (options[0]?.code ?? ''));
 
@@ -33,6 +34,12 @@ export default function OfferModal({
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] card-like shogi-merge">
       <div className="bg-white rounded-xl p-4 w-[340px]">
         <div className="text-lg font-semibold mb-2">{titleText}</div>
+
+        {conditionText ? (
+          <div className="mb-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1" style={{ fontFamily: 'serif' }}>
+            {conditionText}
+          </div>
+        ) : null}
 
         <div className="text-sm mb-1">{t("ui.components.lobby.offermodal.k21e72ec7")}</div>
         <div className="flex flex-wrap gap-2 mb-2">

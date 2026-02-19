@@ -578,11 +578,43 @@ def waiting_start():
             rating_min = int(rating) - int(rating_range)
             rating_max = int(rating) + int(rating_range)
 
+        # game type (rated/free)
+        gt_raw = payload.get('game_type')
+        if gt_raw is None:
+            gt_raw = payload.get('gameType')
+        game_type = str(gt_raw or 'rating').strip().lower()
+        if game_type not in ('rating', 'free'):
+            game_type = 'rating'
+
+        # reserved-wait flag (先約待ち) - display only
+        reserved = bool(payload.get('reserved') or payload.get('reserved_wait') or payload.get('has_reservation') or payload.get('reservation'))
+
+        # handicap (free only)
+        h_enabled = bool(payload.get('handicap_enabled') or payload.get('handicapEnabled') or payload.get('handicap'))
+        h_type_raw = payload.get('handicap_type')
+        if h_type_raw is None:
+            h_type_raw = payload.get('handicapType')
+        try:
+            from src.utils.handicap import normalize_handicap_type
+            h_type = normalize_handicap_type(h_type_raw)
+        except Exception:
+            h_type = None
+        if game_type != 'free':
+            h_enabled = False
+            h_type = None
+        if not h_enabled:
+            h_type = None
+        if h_enabled and not h_type:
+            return _json({'error': 'invalid_handicap_type'}, 400)
+
         waiting_info = {
             'username': username,
             'rating': rating,
             'time_code': time_code,
-            'game_type': payload.get('game_type', 'rating'),
+            'game_type': game_type,
+            'reserved': bool(reserved),
+            'handicap_enabled': bool(h_enabled),
+            'handicap_type': h_type,
             'rating_range': rating_range,
             'rating_min': rating_min,
             'rating_max': rating_max,
@@ -1005,14 +1037,49 @@ def offer_accept():
             # Keep API JSON contract (no Flask abort -> HTML).
             return _json({'success': False, 'error': 'username_missing', 'message': 'username_missing'}, 409)
 
-        if random.random() < 0.5:
-            sente = {'user_id': str(from_uid), 'username': from_username}
-            gote  = {'user_id': str(me),       'username': me_username}
-            my_role = 'gote'
+        # --- handicap / role assignment (host=receiver=me is treated as 上手) ---
+        handicap_enabled = False
+        handicap_type = None
+        try:
+            handicap_enabled = bool(wi.get('handicap_enabled') or wi.get('handicapEnabled'))
+            raw_ht = wi.get('handicap_type') or wi.get('handicapType')
+            from src.utils.handicap import normalize_handicap_type
+            handicap_type = normalize_handicap_type(raw_ht)
+        except Exception:
+            handicap_enabled = False
+            handicap_type = None
+
+        if game_type != 'free':
+            handicap_enabled = False
+            handicap_type = None
+        if not handicap_enabled:
+            handicap_type = None
+
+        upper_role = None
+        if handicap_enabled and handicap_type:
+            if handicap_type == 'even_lower_first':
+                # 平手（下位者先手）:
+                #   - 待機開始者（上手）は後手固定
+                #   - 申込者（下手）が先手
+                sente = {'user_id': str(from_uid), 'username': from_username}
+                gote  = {'user_id': str(me),       'username': me_username}
+                my_role = 'gote'
+                upper_role = 'gote'
+            else:
+                # 駒落ち: 原則として上手（待機開始者）が先手
+                sente = {'user_id': str(me),       'username': me_username}
+                gote  = {'user_id': str(from_uid), 'username': from_username}
+                my_role = 'sente'
+                upper_role = 'sente'
         else:
-            sente = {'user_id': str(me),       'username': me_username}
-            gote  = {'user_id': str(from_uid), 'username': from_username}
-            my_role = 'sente'
+            if random.random() < 0.5:
+                sente = {'user_id': str(from_uid), 'username': from_username}
+                gote  = {'user_id': str(me),       'username': me_username}
+                my_role = 'gote'
+            else:
+                sente = {'user_id': str(me),       'username': me_username}
+                gote  = {'user_id': str(from_uid), 'username': from_username}
+                my_role = 'sente'
 
         tc_meta = (TIME_CONTROLS or {}).get(time_code) or {}
 
@@ -1034,11 +1101,17 @@ def offer_accept():
             'base_at': int(datetime.utcnow().timestamp() * 1000),
             'current_player': 'sente',
         }
-
         # Canonical: store only SFEN (no board arrays / no captured arrays).
         # start_sfen is kept so we can reconstruct review/analysis from USI move list.
         from src.services.game_service import DEFAULT_START_SFEN
         start_sfen = DEFAULT_START_SFEN
+        # Apply handicap by removing pieces from the upper player's side (free games only).
+        try:
+            if handicap_enabled and handicap_type and handicap_type != 'even_lower_first':
+                from src.utils.handicap import apply_handicap_to_sfen
+                start_sfen = apply_handicap_to_sfen(start_sfen, upper_role=(upper_role or 'sente'), handicap_type=handicap_type) or start_sfen
+        except Exception:
+            pass
         sfen = start_sfen
 
         from src.models.database import DatabaseManager
@@ -1064,6 +1137,14 @@ def offer_accept():
             pass
         game_data = {
             "game_type": game_type,
+            "handicap": (
+                {
+                    "enabled": True,
+                    "type": handicap_type,
+                    "host_user_id": str(me),
+                    "upper_role": upper_role,
+                } if (handicap_enabled and handicap_type) else None
+            ),
             "players": {"sente": sente, "gote": gote},
             "status": "active",
             "current_turn": "sente",

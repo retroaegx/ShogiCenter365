@@ -19,6 +19,7 @@ import leftIcon from '@/assets/icons/left.svg';
 import flagIcon from '@/assets/icons/flag.svg';
 import { createInitialBoard, makeMove, makeDrop, PLAYERS, PIECE_NAMES } from '@/utils/shogiLogic';
 import { parseUsi } from '@/utils/usi';
+import { parseSfen, DEFAULT_START_SFEN } from '@/utils/sfen';
 import websocketService from '@/services/websocketService';
 import api from '@/services/apiClient';
 import useSound from '@/hooks/useSound';
@@ -1416,14 +1417,37 @@ useEffect(() => {
     } catch {}
   };
   // 再生ユーティリティ: USI の move_history から局面を導出
-  // ※ base_board は不要（初期局面は createInitialBoard() で固定）
-  const deriveStateFromHistory = (moveHistory, upto) => {
+  // ※ start_sfen（駒落ちなど）に対応するため、初期局面は SFEN を優先する
+  const deriveStateFromHistory = (moveHistory, upto, baseSfen) => {
     const hist = Array.isArray(moveHistory) ? moveHistory : [];
     const end = Math.max(0, Math.min(upto ?? hist.length, hist.length));
+
+    // Start position: prefer start_sfen (handicap uses this).
+    let startSfen = null;
+    try {
+      if (typeof baseSfen === 'string' && baseSfen.trim()) startSfen = baseSfen.trim();
+      else if (typeof gameState?.start_sfen === 'string' && gameState.start_sfen.trim()) startSfen = gameState.start_sfen.trim();
+      else if (typeof gameState?.startSfen === 'string' && gameState.startSfen.trim()) startSfen = gameState.startSfen.trim();
+      else if (typeof gameState?.game_state?.start_sfen === 'string' && gameState.game_state.start_sfen.trim()) startSfen = gameState.game_state.start_sfen.trim();
+      else if (typeof gameState?.game_state?.startSfen === 'string' && gameState.game_state.startSfen.trim()) startSfen = gameState.game_state.startSfen.trim();
+    } catch {}
+
+    // Fallback: if start_sfen is missing but we only need the latest position, use current SFEN.
+    let parsedBase = null;
+    try {
+      if (!startSfen && end === hist.length) {
+        const cur = (typeof gameState?.sfen === 'string' && gameState.sfen.trim()) ? gameState.sfen.trim() : null;
+        if (cur) parsedBase = parseSfen(cur);
+      }
+    } catch {}
+    if (!parsedBase) {
+      parsedBase = parseSfen(startSfen || DEFAULT_START_SFEN);
+    }
+
     let state = {
-      board: createInitialBoard(),
-      capturedPieces: { sente: {}, gote: {} },
-      currentPlayer: PLAYERS.SENTE,
+      board: parsedBase?.board || createInitialBoard(),
+      capturedPieces: parsedBase?.capturedPieces || { sente: {}, gote: {} },
+      currentPlayer: parsedBase?.currentPlayer || PLAYERS.SENTE,
     };
 
     const toNum = (v) => {
@@ -2112,6 +2136,8 @@ setGameState(prev => {
       ...prev,
       ...shaped,
       players: (shaped?.players && (shaped.players.sente || shaped.players.gote)) ? shaped.players : (prev?.players || {}),
+      start_sfen: (shaped?.start_sfen ?? shaped?.startSfen ?? prev?.start_sfen ?? prev?.startSfen ?? null),
+      sfen: (shaped?.sfen ?? prev?.sfen ?? null),
       board: shaped?.board ?? prev?.board ?? null,
       capturedPieces: shaped?.capturedPieces ?? prev?.capturedPieces ?? { sente:{}, gote:{} },
       currentPlayer: (() => {
@@ -2522,6 +2548,8 @@ setGameState(prev => {
       board: gs.board ?? gs.game_state?.board ?? null,
       capturedPieces: (() => { const c = gs.captured ?? gs.game_state?.captured ?? { sente:[], gote:[] }; return { sente: toCountMap(c.sente), gote: toCountMap(c.gote) }; })(),
       currentPlayer: gs.current_turn ?? gs.game_state?.current_turn ?? 'sente',
+      start_sfen: (gs.start_sfen ?? gs.startSfen ?? gs.game_state?.start_sfen ?? gs.game_state?.startSfen ?? null),
+      sfen: (gs.sfen ?? gs.game_state?.sfen ?? null),
       players: gs.players ?? gs.game_state?.players ?? {},
       move_history: gs.move_history ?? []
     };
