@@ -1,5 +1,6 @@
 import './styles/shogi.css'
 import './styles/layout-fix-v15.css'
+import './styles/shogi-form-theme.css'
 
 import '@/services/fetchAuthPatch'
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';

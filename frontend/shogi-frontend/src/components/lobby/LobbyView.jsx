@@ -8,6 +8,7 @@ import WaitConfigModal from './WaitConfigModal';
 import { RATING_TAB_DEFS, getRatingTabs, bandOfRating } from '@/services/ratingBands';
 import { ratingToRank24 } from '@/utils/rating24';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { t, getLanguage } from '@/i18n';
 import { gameErrorMessage } from '@/i18n/gameErrors';
 import { lobbyJoinErrorMessage, inviteErrorMessage } from '@/i18n/lobbyErrors';
@@ -15,6 +16,7 @@ import DoubleLineActionButton from '@/components/ui/double-line-action-button';
 import { Button } from '@/components/ui/button';
 import UserStatsOverlay from '@/components/user/UserStatsOverlay';
 import LegionFlagIcon from '@/components/common/LegionFlagIcon';
+import '@/styles/shogi-form-theme.css';
 
 
 const statusLabelOf = (w) => {
@@ -58,57 +60,109 @@ function OfferModal({ open, onClose, onSubmit, defaultCode, options = [], submit
   const [code, setCode] = useState(defaultCode || (options[0]?.code ?? ''));
   useEffect(() => { if (open) setCode(defaultCode || (options[0]?.code ?? '')); }, [open, defaultCode, options]);
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] card-like shogi-merge">
-      <div className="bg-white rounded-xl p-4 w-[340px]">
-        <div className="text-lg font-semibold mb-2">{t("ui.components.lobby.lobbyview.k1a9bf87b")}</div>
-        {conditionText ? (
-          <div className="mb-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1" style={{ fontFamily: 'serif' }}>
-            {conditionText}
+  const node = (
+    <div
+      className="shogi-form-overlay"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose && onClose();
+      }}
+    >
+      <div className="shogi-form-modal w-[420px] max-w-[92vw]">
+        <div className="shogi-form-topbar" />
+        <div className="shogi-form-corner shogi-form-corner-tl">◇</div>
+        <div className="shogi-form-corner shogi-form-corner-tr">◇</div>
+        <div className="shogi-form-inner">
+          <div className="shogi-form-header">
+            <div className="shogi-form-title">{t('ui.components.lobby.lobbyview.k1a9bf87b')}</div>
           </div>
-        ) : null}
-        <div className="text-sm mb-1">{t("ui.components.lobby.lobbyview.k21e72ec7")}</div>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {options.map(opt => (
-            <button
-              key={opt.code}
-              className={"px-3 py-1 rounded border " + (code===opt.code ? "bg-gray-200":"bg-white")}
-              onClick={()=> setCode(opt.code)}
-            >{opt.name}</button>
-          ))}
-        </div>
-        {ratingNote && (
-          <div className="mb-2 text-xs text-red-500">
-            {ratingNote}
-          </div>
-        )}
-        <div className="flex justify-end gap-2">
-          <button className="px-3 py-1 border rounded" onClick={onClose} disabled={submitting}>{t("ui.components.lobby.lobbyview.k18ca8614")}</button>
-          <button className="px-3 py-1 border rounded bg-emerald-600 text-white hover:bg-emerald-700"
 
-            onClick={()=> onSubmit?.(code)} disabled={!code || submitting}>
-            {submitting ? t('ui.components.lobby.lobbyview.k7f1bfccb') : t('ui.components.lobby.lobbyview.k53ea5d46')}
-          </button>
+          {conditionText ? (
+            <div className="shogi-form-note mb-2">{conditionText}</div>
+          ) : null}
+
+          {ratingNote ? (
+            <div className="shogi-form-note mb-2" style={{ color: '#b91c1c' }}>
+              {ratingNote}
+            </div>
+          ) : null}
+
+          <div className="shogi-form-section">
+            <div className="shogi-form-section-label">{t('ui.components.lobby.lobbyview.k21e72ec7')}</div>
+            <div className="shogi-form-chip-group">
+              {(options || []).map((opt) => (
+                <button
+                  key={opt.code}
+                  type="button"
+                  className={'shogi-form-chip ' + (code === opt.code ? 'is-active' : '')}
+                  onClick={() => setCode(opt.code)}
+                  disabled={submitting}
+                >
+                  {opt.label ?? opt.name ?? opt.code}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="shogi-form-actions">
+            <button
+              className="shogi-form-btn shogi-form-btn-ghost"
+              onClick={onClose}
+              disabled={submitting}
+              type="button"
+            >
+              {t('ui.components.lobby.lobbyview.k18ca8614')}
+            </button>
+            <button
+              className="shogi-form-btn shogi-form-btn-primary"
+              onClick={() => onSubmit?.(code)}
+              disabled={!code || submitting}
+              type="button"
+            >
+              {submitting ? t('ui.components.lobby.lobbyview.k7f1bfccb') : t('ui.components.lobby.lobbyview.k53ea5d46')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
+  if (typeof document === 'undefined' || !document.body) return node;
+  return createPortal(node, document.body);
 }
 
 function AlertModal({ open, title, message = "", onClose }) {
   const displayTitle = title ?? t("ui.components.lobby.lobbyview.k85e598e7");
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[110]">
-      <div className="bg-white rounded-xl p-4 w-[340px]">
-        <div className="text-lg font-semibold mb-2">{displayTitle}</div>
-        <div className="text-sm text-gray-700 mb-4 whitespace-pre-wrap">{message}</div>
-        <div className="flex justify-end">
-          <button className="px-3 py-1 border rounded" onClick={onClose}>{t("ui.components.lobby.lobbyview.k3da5c185")}</button>
+  const node = (
+    <div
+      className="shogi-form-overlay"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose && onClose();
+      }}
+    >
+      <div className="shogi-form-modal w-[520px] max-w-[92vw]">
+        <div className="shogi-form-topbar" />
+        <div className="shogi-form-corner shogi-form-corner-tl">◇</div>
+        <div className="shogi-form-corner shogi-form-corner-tr">◇</div>
+        <div className="shogi-form-inner">
+          <div className="shogi-form-header">
+            <div className="shogi-form-title">{displayTitle}</div>
+          </div>
+          <div className="shogi-form-note" style={{ whiteSpace: 'pre-wrap' }}>{message}</div>
+          <div className="shogi-form-actions" style={{ justifyContent: 'flex-end' }}>
+            <button className="shogi-form-btn shogi-form-btn-primary" onClick={onClose} type="button">
+              {t('ui.components.lobby.lobbyview.k3da5c185')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
+  if (typeof document === 'undefined' || !document.body) return node;
+  return createPortal(node, document.body);
 }
 
 

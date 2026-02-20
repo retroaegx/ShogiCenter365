@@ -1,0 +1,359 @@
+:root {
+  --shogi-ink: #1a1410;
+  --shogi-ink-soft: #3d322a;
+  --shogi-gold: #c9a84c;
+  --shogi-gold-light: #e8c97a;
+  --shogi-border: rgba(201, 168, 76, 0.35);
+  --shogi-surface-a: rgba(253, 249, 242, 0.92);
+  --shogi-surface-b: rgba(244, 234, 214, 0.88);
+}
+
+/*
+  Form / modal theme inspired by the provided HTML mock, but WITHOUT changing
+  the app background (no grid / glow layers). Only surfaces are themed.
+*/
+
+.shogi-dialog-surface {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--shogi-surface-a) 0%, var(--shogi-surface-b) 100%);
+  border: 1px solid var(--shogi-border);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 76, 0.18),
+    0 20px 55px rgba(10, 5, 0, 0.35),
+    0 6px 18px rgba(10, 5, 0, 0.22);
+}
+
+.shogi-dialog-surface::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--shogi-gold),
+    var(--shogi-gold-light),
+    var(--shogi-gold),
+    transparent
+  );
+  opacity: 0.9;
+}
+
+.shogi-section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  font-weight: 700;
+  color: var(--shogi-gold);
+}
+
+.shogi-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201, 168, 76, 0.35), transparent);
+}
+
+.shogi-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--shogi-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(201, 168, 76, 0.06);
+}
+
+.shogi-seg-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: #8a7060;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.shogi-seg-btn + .shogi-seg-btn {
+  border-left: 1px solid var(--shogi-border);
+}
+
+.shogi-seg-btn.is-active {
+  background: linear-gradient(135deg, #1e1208, #2e1c0a);
+  color: var(--shogi-gold-light);
+  font-weight: 700;
+}
+
+.shogi-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shogi-chip {
+  appearance: none;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 7px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #6a5a50;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.shogi-chip.is-active {
+  background: linear-gradient(135deg, #251509, #311c0c);
+  border-color: var(--shogi-gold);
+  color: var(--shogi-gold-light);
+  box-shadow: 0 2px 14px rgba(201, 168, 76, 0.25);
+}
+
+.shogi-card-row {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(201, 168, 76, 0.22);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.shogi-card-row.is-muted {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.shogi-input {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 10px;
+}
+
+.shogi-input:focus {
+  outline: none;
+  border-color: var(--shogi-gold);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.14);
+}
+
+/* Make shadcn inputs inside themed dialogs match the same surface */
+.shogi-dialog-surface [data-slot='input'],
+.shogi-dialog-surface select,
+.shogi-dialog-surface textarea {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 10px;
+}
+
+.shogi-dialog-surface [data-slot='input']:focus,
+.shogi-dialog-surface select:focus,
+.shogi-dialog-surface textarea:focus {
+  outline: none;
+  border-color: var(--shogi-gold);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.14);
+}
+
+/* Gold-ish switches (only when opt-in via className) */
+.shogi-switch {
+  border-color: rgba(201, 168, 76, 0.35) !important;
+  background: rgba(201, 168, 76, 0.12) !important;
+}
+
+.shogi-switch[data-state='checked'] {
+  background: linear-gradient(135deg, var(--shogi-gold), var(--shogi-gold-light)) !important;
+  border-color: var(--shogi-gold) !important;
+  box-shadow: 0 0 12px rgba(201, 168, 76, 0.22);
+}
+
+.shogi-dialog-footer {
+  position: sticky;
+  bottom: 0;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid rgba(201, 168, 76, 0.18);
+  /* 背景レイヤーが「謎の帯」に見えるので、フッターは透過にする */
+  background: transparent;
+}
+
+/* ------------------------------------------------------------
+   Legacy form overlay classes used by OfferModal / OfferOverlays
+   (these must exist; otherwise the modal renders in normal DOM flow)
+------------------------------------------------------------ */
+
+.shogi-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+/* Small screens / short height: keep reachable */
+@media (max-width: 420px), (max-height: 720px) {
+  .shogi-form-overlay {
+    align-items: flex-start;
+    padding: 16px;
+    overflow: auto;
+  }
+}
+
+.shogi-form-modal {
+  position: relative;
+  max-height: min(86vh, 760px);
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--shogi-surface-a) 0%, var(--shogi-surface-b) 100%);
+  border: 1px solid var(--shogi-border);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 76, 0.18),
+    0 20px 55px rgba(10, 5, 0, 0.35),
+    0 6px 18px rgba(10, 5, 0, 0.22);
+}
+
+.shogi-form-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--shogi-gold),
+    var(--shogi-gold-light),
+    var(--shogi-gold),
+    transparent
+  );
+  opacity: 0.9;
+}
+
+.shogi-form-corner {
+  position: absolute;
+  top: 10px;
+  font-size: 12px;
+  color: rgba(201, 168, 76, 0.65);
+  user-select: none;
+  pointer-events: none;
+}
+.shogi-form-corner-tl { left: 12px; }
+.shogi-form-corner-tr { right: 12px; }
+
+.shogi-form-inner {
+  padding: 22px 22px 18px;
+  overflow: auto;
+  max-height: min(86vh, 760px);
+}
+
+.shogi-form-header {
+  margin-bottom: 10px;
+}
+
+.shogi-form-title {
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: var(--shogi-ink);
+  text-align: center;
+}
+
+.shogi-form-subtitle,
+.shogi-form-note {
+  font-size: 12px;
+  color: #6a5a50;
+}
+
+.shogi-form-section {
+  margin-top: 14px;
+}
+
+.shogi-form-section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  font-weight: 700;
+  color: var(--shogi-gold);
+  margin-bottom: 10px;
+}
+
+.shogi-form-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201, 168, 76, 0.35), transparent);
+}
+
+.shogi-form-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shogi-form-chip {
+  appearance: none;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 7px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #6a5a50;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.shogi-form-chip.is-active {
+  background: linear-gradient(135deg, #251509, #311c0c);
+  border-color: var(--shogi-gold);
+  color: var(--shogi-gold-light);
+  box-shadow: 0 2px 14px rgba(201, 168, 76, 0.25);
+}
+
+.shogi-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.shogi-form-btn {
+  appearance: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border: 1px solid rgba(201, 168, 76, 0.32);
+  background: rgba(255, 255, 255, 0.65);
+  color: #4a3a31;
+  box-shadow: 0 6px 16px rgba(10, 5, 0, 0.16);
+}
+
+.shogi-form-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shogi-form-btn-ghost {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.shogi-form-btn-primary {
+  background: linear-gradient(135deg, #1e1208, #2e1c0a);
+  border-color: rgba(201, 168, 76, 0.5);
+  color: var(--shogi-gold-light);
+}

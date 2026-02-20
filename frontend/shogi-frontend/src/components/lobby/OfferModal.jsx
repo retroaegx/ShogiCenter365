@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { t } from '@/i18n';
 
 export default function OfferModal({
@@ -11,13 +12,47 @@ export default function OfferModal({
   ratingNote,
   conditionText,
 }) {
-  const [code, setCode] = useState(defaultCode || (options[0]?.code ?? ''));
+  // options は呼び出し側によって {code,label}/{value,label}/string[] が混在するので正規化する
+  const normalizedOptions = useMemo(() => {
+    return (options || [])
+      .map((o) => {
+        if (typeof o === 'string') return { code: o, label: o };
+        if (!o) return null;
+        const code = o.code ?? o.value ?? o.name;
+        if (!code) return null;
+        const label = o.label ?? o.name ?? code;
+        return { code, label };
+      })
+      .filter(Boolean);
+  }, [options]);
+
+  const [code, setCode] = useState(defaultCode || (normalizedOptions[0]?.code ?? ''));
 
   useEffect(() => {
     if (open) {
-      setCode(defaultCode || (options[0]?.code ?? ''));
+      setCode(defaultCode || (normalizedOptions[0]?.code ?? ''));
     }
-  }, [open, defaultCode, options]);
+  }, [open, defaultCode, normalizedOptions]);
+
+  // モーダル表示中は body スクロールを止める
+  useEffect(() => {
+    if (!open) return;
+    const prev = document?.body?.style?.overflow;
+    if (document?.body?.style) document.body.style.overflow = 'hidden';
+    return () => {
+      if (document?.body?.style) document.body.style.overflow = prev || '';
+    };
+  }, [open]);
+
+  // ESC で閉じる
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -30,9 +65,18 @@ export default function OfferModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] card-like shogi-merge">
-      <div className="bg-white rounded-xl p-4 w-[340px]">
+  // 祖先要素に transform 等があると fixed が崩れるので、常に body 直下へポータルする
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={(e) => {
+        // backdrop クリックで閉じる
+        if (e.target === e.currentTarget) onClose?.();
+      }}
+    >
+      <div className="bg-white rounded-xl p-4 w-[min(92vw,420px)] shadow-2xl">
         <div className="text-lg font-semibold mb-2">{titleText}</div>
 
         {conditionText ? (
@@ -43,7 +87,7 @@ export default function OfferModal({
 
         <div className="text-sm mb-1">{t("ui.components.lobby.offermodal.k21e72ec7")}</div>
         <div className="flex flex-wrap gap-2 mb-2">
-          {options.map((opt) => (
+          {normalizedOptions.map((opt) => (
             <button
               key={opt.code}
               type="button"
@@ -53,7 +97,7 @@ export default function OfferModal({
               }
               onClick={() => setCode(opt.code)}
             >
-              {opt.label ?? opt.name ?? opt.code}
+              {opt.label}
             </button>
           ))}
         </div>
@@ -82,6 +126,7 @@ export default function OfferModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

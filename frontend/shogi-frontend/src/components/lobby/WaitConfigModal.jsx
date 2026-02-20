@@ -27,7 +27,7 @@ const HANDICAP_OPTIONS = [
 ];
 
 const handicapOptionLabel = (o) => {
-  // ロビー表示は短くしたいので、待機開始の選択肢だけ詳細名にする。
+  // 待機開始の選択肢だけ詳細名にする。
   if (o?.value === 'even_lower_first') return t('ui.components.lobby.waitconfigmodal.handicap.evenLowerFirstDetail');
   return t(o?.labelKey);
 };
@@ -84,25 +84,22 @@ export default function WaitConfigModal({ open, onClose, onSubmit, initial = {},
     return RATE_SPAN_OPTIONS.includes(m) ? m : 300;
   });
 
-  // open のたびに initial を反映する（localStorage等から渡す想定）
+  // open のたびに initial を反映する
   useEffect(() => {
     if (!open) return;
     const candidate = initial?.timeControl ?? initial?.value ?? (normalized[0]?.value ?? null);
     if (candidate && value !== candidate) setValue(candidate);
 
-    // game type
     const gt = initial?.gameType ?? initial?.game_type;
     if (gt === 'free' || gt === 'rating') {
       if (gameType !== gt) setGameType(gt);
     }
 
-    // reserved
     const rv = initial?.reservedWait ?? initial?.reserved ?? initial?.hasReservation;
     if (typeof rv === 'boolean') {
       if (reservedWait !== rv) setReservedWait(rv);
     }
 
-    // handicap
     const he = initial?.handicapEnabled ?? initial?.handicap_enabled;
     if (typeof he === 'boolean') {
       if (handicapEnabled !== he) setHandicapEnabled(he);
@@ -113,7 +110,6 @@ export default function WaitConfigModal({ open, onClose, onSubmit, initial = {},
       if (handicapType !== s) setHandicapType(s);
     }
 
-    // rating range
     const initUseRange = initial && typeof initial === 'object' ? initial.useRange : undefined;
     if (initUseRange === false) {
       if (useRange !== false) setUseRange(false);
@@ -172,77 +168,85 @@ export default function WaitConfigModal({ open, onClose, onSubmit, initial = {},
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] grid place-items-center bg-black/40 supports-[backdrop-filter]:bg-black/30 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[2000] bg-black/35 flex items-start sm:items-center justify-center overflow-y-auto px-4"
+      style={{
+        paddingTop: "calc(1rem + env(safe-area-inset-top))",
+        paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+      }}
       onClick={() => onClose?.()}
     >
       <div
-        className="bg-white rounded-xl shadow-xl w-[min(30rem,calc(100vw-2rem))] p-4"
+        className="shogi-dialog-surface w-[min(32rem,calc(100vw-2rem))] p-4 sm:p-6 flex flex-col max-h-[calc(100vh-2rem)]"
         role="dialog"
         aria-modal="true"
+        style={{ maxHeight: "calc(100dvh - 2rem)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-3">
-          <div className="text-base font-semibold">{t('ui.components.lobby.waitconfigmodal.kb313f5db')}</div>
-          <div className="text-sm text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.ka4d4601d')}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="mb-4 text-center">
+          <div className="text-xl font-semibold" style={{ fontFamily: 'serif', letterSpacing: '0.12em' }}>
+            {t('ui.components.lobby.waitconfigmodal.kb313f5db')}
+          </div>
         </div>
 
         <div className="space-y-4">
           {/* 対局種別 */}
           <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.gameType.label')}</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="shogi-section-label">{t('ui.components.lobby.waitconfigmodal.gameType.label')}</div>
+            <div className="shogi-seg" role="tablist" aria-label={t('ui.components.lobby.waitconfigmodal.gameType.label')}>
               {GAME_TYPE_OPTIONS.map((opt) => (
-                <Button
+                <button
                   key={opt.value}
                   type="button"
-                  variant={gameType === opt.value ? 'default' : 'outline'}
+                  className={"shogi-seg-btn " + (gameType === opt.value ? 'is-active' : '')}
                   onClick={() => setGameType(opt.value)}
-                  className="px-3"
+                  aria-pressed={gameType === opt.value}
                 >
                   {t(opt.labelKey)}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
           {/* 持ち時間 */}
           <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.k492bb9b8')}</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="shogi-section-label">{t('ui.components.lobby.waitconfigmodal.k492bb9b8')}</div>
+            <div className="shogi-chip-row" role="group" aria-label={t('ui.components.lobby.waitconfigmodal.k492bb9b8')}>
               {normalized.map((opt) => (
-                <Button
+                <button
                   key={opt.value}
                   type="button"
-                  variant={value === opt.value ? 'default' : 'outline'}
+                  className={"shogi-chip " + (value === opt.value ? 'is-active' : '')}
                   onClick={() => setValue(opt.value)}
-                  className="px-3"
+                  aria-pressed={value === opt.value}
                 >
                   {opt.label}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
           {/* レーティング範囲 */}
-          <div className="pt-2 border-t">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.kd6be5af6')}</div>
-              <label className="text-sm flex items-center gap-2 select-none">
-                <input
-                  type="checkbox"
+          <div className="pt-1">
+            <div className="flex items-center gap-3">
+              <div className="shogi-section-label flex-1 min-w-0">{t('ui.components.lobby.waitconfigmodal.kd6be5af6')}</div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.kc0db98b8')}</span>
+                <Switch
+                  className="shogi-switch"
                   checked={useRange}
-                  onChange={(e) => setUseRange(!!e.target.checked)}
+                  onCheckedChange={(v) => setUseRange(!!v)}
+                  aria-label={t('ui.components.lobby.waitconfigmodal.kc0db98b8')}
                 />
-                {t('ui.components.lobby.waitconfigmodal.kc0db98b8')}
-              </label>
+              </div>
             </div>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="text-sm">±</span>
               <select
                 disabled={!useRange}
                 value={rateSpan}
                 onChange={(e) => setRateSpan(Number(e.target.value))}
-                className="w-28 border rounded px-2 py-1"
+                className="shogi-input w-28 px-2 py-1 text-sm"
               >
                 {RATE_SPAN_OPTIONS.map((n) => (
                   <option key={n} value={n}>
@@ -250,35 +254,34 @@ export default function WaitConfigModal({ open, onClose, onSubmit, initial = {},
                   </option>
                 ))}
               </select>
-              <span className="text-sm text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.kca1778de')}</span>
             </div>
           </div>
 
-          {/* 先約待ち（下側へ配置） */}
-          <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2">
+          {/* 先約待ち */}
+          <div className="shogi-card-row flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-sm font-medium">{t('ui.components.lobby.waitconfigmodal.reserved.label')}</div>
-              <div className="text-xs text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.reserved.help')}</div>
             </div>
             <Switch
+              className="shogi-switch"
               checked={reservedWait}
               onCheckedChange={(v) => setReservedWait(!!v)}
               aria-label={t('ui.components.lobby.waitconfigmodal.reserved.label')}
             />
           </div>
 
-          {/* 駒落ち（下側へ配置） */}
-          <div className="border rounded-md px-3 py-2 space-y-2">
+          {/* 駒落ち */}
+          <div className={"shogi-card-row space-y-2 " + (handicapToggleDisabled ? 'is-muted' : '')}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-medium">{t('ui.components.lobby.waitconfigmodal.handicap.label')}</div>
-                <div className="text-xs text-muted-foreground">{t('ui.components.lobby.waitconfigmodal.handicap.help')}</div>
               </div>
               <Switch
                 disabled={handicapToggleDisabled}
                 checked={handicapEnabled && !handicapToggleDisabled}
                 onCheckedChange={(v) => setHandicapEnabled(!!v)}
                 aria-label={t('ui.components.lobby.waitconfigmodal.handicap.label')}
+                className="shogi-switch"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -287,7 +290,7 @@ export default function WaitConfigModal({ open, onClose, onSubmit, initial = {},
                 disabled={handicapSelectDisabled}
                 value={handicapType}
                 onChange={(e) => setHandicapType(e.target.value)}
-                className="flex-1 border rounded px-2 py-1"
+                className="shogi-input flex-1 px-2 py-1 text-sm"
               >
                 {HANDICAP_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -298,12 +301,23 @@ export default function WaitConfigModal({ open, onClose, onSubmit, initial = {},
             </div>
           </div>
         </div>
+        </div>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onClose?.()}>
+        <div className="shogi-dialog-footer flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onClose?.()}
+            className="border-[rgba(201,168,76,0.35)] bg-[rgba(255,255,255,0.6)] hover:bg-[rgba(201,168,76,0.10)]"
+          >
             {t('ui.components.lobby.waitconfigmodal.k18ca8614')}
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={!value}>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!value}
+            className="bg-[#2e1c0a] text-[#e8c97a] hover:bg-[#1e1208] shadow-sm"
+          >
             {t('ui.components.lobby.waitconfigmodal.kb313f5db')}
           </Button>
         </div>
