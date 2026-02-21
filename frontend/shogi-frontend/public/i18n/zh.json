@@ -125,7 +125,7 @@
   "rules.about.title": "关于",
   "rules.callout.aria": "重要提示",
   "rules.callout.body": "本站是面向学习与交流的非营利服务。我们会尽力维护稳定运行，但不对因使用本站产生的损失承担责任。请遵守规则，并相互尊重。",
-  "rules.callout.title": "重要",
+  "rules.callout.title": "",
   "rules.desc": "本页面概述本站的目的、运营方针与规则。",
   "rules.documentTitle": "关于与规则 | Shogi Center 365",
   "rules.h1": "关于与规则",
@@ -804,7 +804,6 @@
   "verify.status.verified": "邮箱已验证。",
   "verify.status.verifying": "验证中...",
   "static.nav.legal": "条款与隐私",
-
   "static.nav.terms": "服务条款",
   "static.nav.privacy": "隐私政策"
 }

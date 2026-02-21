@@ -372,14 +372,40 @@ class OnlineUsersDiffWorker:
                         prev_wait = 'lobby'
 
                     # receiver back to seeking (they were seeking)
+                    # NOTE: auto-decline (timeout) streak is tracked server-side only.
+                    streak = 1
                     try:
-                        coll.update_one({'user_id': r_uid, 'waiting': 'applying'}, {'$set': {
-                            'waiting': 'seeking',
-                            'pending_offer': {},
-                            'last_seen_at': now_dt,
-                        }})
+                        rdoc = coll.find_one({'user_id': r_uid}, {'auto_decline_streak': 1, 'waiting': 1}) or {}
+                        streak = int(rdoc.get('auto_decline_streak') or 0) + 1
                     except Exception:
-                        pass
+                        streak = 1
+
+                    if streak >= 3:
+                        # 3 consecutive timeouts -> cancel seeking (back to lobby) and notify
+                        try:
+                            coll.update_one({'user_id': r_uid, 'waiting': 'applying'}, {'$set': {
+                                'waiting': 'lobby',
+                                'waiting_info': {},
+                                'pending_offer': {},
+                                'last_seen_at': now_dt,
+                                'auto_decline_streak': 0,
+                            }})
+                        except Exception:
+                            pass
+                        try:
+                            self.socketio.emit('lobby_offer_update', {'type': 'auto_decline_limit'}, room=f'user:{_uid_str(r_uid)}')
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            coll.update_one({'user_id': r_uid, 'waiting': 'applying'}, {'$set': {
+                                'waiting': 'seeking',
+                                'pending_offer': {},
+                                'last_seen_at': now_dt,
+                                'auto_decline_streak': int(streak),
+                            }})
+                        except Exception:
+                            pass
 
                     # sender back
                     try:

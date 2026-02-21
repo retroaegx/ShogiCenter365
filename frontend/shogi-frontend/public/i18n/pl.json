@@ -125,7 +125,7 @@
   "rules.about.title": "O serwisie",
   "rules.callout.aria": "Ważna informacja",
   "rules.callout.body": "To serwis non-profit do nauki i wymiany doświadczeń. Dokładamy starań, by działał stabilnie, ale nie ponosimy odpowiedzialności za straty wynikłe z korzystania. Prosimy o przestrzeganie zasad i wzajemny szacunek.",
-  "rules.callout.title": "Ważne",
+  "rules.callout.title": "",
   "rules.desc": "Ta strona podsumowuje cel serwisu, zasady działania i reguły.",
   "rules.documentTitle": "O serwisie i zasady | Shogi Center 365",
   "rules.h1": "O serwisie i zasady",
@@ -804,7 +804,6 @@
   "verify.status.verified": "E-mail zweryfikowany.",
   "verify.status.verifying": "Weryfikowanie…",
   "static.nav.legal": "Regulamin i prywatność",
-
   "static.nav.terms": "Warunki korzystania",
   "static.nav.privacy": "Polityka prywatności"
 }

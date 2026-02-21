@@ -812,5 +812,6 @@
   "ui.components.lobby.lobbyview.gameTypeBadge.rating": "Rated",
   "ui.components.lobby.lobbyview.gameTypeBadge.free": "Casual",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Upper second",
-  "ui.components.lobby.lobbyview.reservedBadge": "Reserved"
+  "ui.components.lobby.lobbyview.reservedBadge": "Reserved",
+  "ui.app.autoDeclineCancelledWaiting": "Your waiting was cancelled due to repeated timeouts."
 }

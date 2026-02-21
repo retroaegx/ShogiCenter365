@@ -1769,7 +1769,12 @@ return (
             <Alert
               key={notification.id}
               variant={notification.type === 'error' ? 'destructive' : 'default'}
-              className="w-80 fade-in cursor-pointer"
+              className={[
+                "w-80 fade-in cursor-pointer shadow-lg backdrop-blur-sm",
+                notification.type === 'error'
+                  ? "bg-red-50/95 text-red-950 border-red-300"
+                  : "bg-background/95 text-foreground border-border"
+              ].join(' ')}
               onClick={() => removeNotification(notification.id)}
             >
               <AlertDescription>{notification.message}</AlertDescription>

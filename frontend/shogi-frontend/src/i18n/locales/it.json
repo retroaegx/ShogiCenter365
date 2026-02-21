@@ -812,5 +812,6 @@
   "ui.components.lobby.lobbyview.gameTypeBadge.rating": "Classificata",
   "ui.components.lobby.lobbyview.gameTypeBadge.free": "Libera",
   "ui.components.lobby.lobbyview.reservedBadge": "Riservato",
-  "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Superiore: secondo"
+  "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Superiore: secondo",
+  "ui.app.autoDeclineCancelledWaiting": "L'attesa è stata annullata a causa di timeout ripetuti."
 }

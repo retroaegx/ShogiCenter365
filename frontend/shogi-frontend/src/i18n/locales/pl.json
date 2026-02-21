@@ -812,5 +812,6 @@
   "ui.components.lobby.lobbyview.gameTypeBadge.rating": "Ranking",
   "ui.components.lobby.lobbyview.gameTypeBadge.free": "Wolny",
   "ui.components.lobby.lobbyview.reservedBadge": "Zarezerwowane",
-  "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Górny: drugi"
+  "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Górny: drugi",
+  "ui.app.autoDeclineCancelledWaiting": "Oczekiwanie zostało anulowane z powodu kolejnych przekroczeń czasu."
 }

@@ -202,9 +202,10 @@
 /* Small screens / short height: keep reachable */
 @media (max-width: 420px), (max-height: 720px) {
   .shogi-form-overlay {
-    align-items: flex-start;
+    align-items: center;
     padding: 16px;
     overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

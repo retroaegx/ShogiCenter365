@@ -162,6 +162,7 @@
   "theme.piece.standard": "駒（標準）",
   "theme.piece.white": "駒(白)",
   "theme.set.default": "デフォルト",
+  "ui.app.autoDeclineCancelledWaiting": "連続した自動拒否により待機が解除されました。",
   "ui.app.k06a57c3b": "アカウントを作成しました。ログインしてください。",
   "ui.app.k2d87732a": "駒セット",
   "ui.app.k2e1a7258": "まだブロックしているユーザーはいません。",

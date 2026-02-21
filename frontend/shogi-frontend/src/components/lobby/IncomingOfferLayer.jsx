@@ -1,6 +1,6 @@
 // src/components/lobby/IncomingOfferLayer.jsx
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { t } from '@/i18n';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { t, getLanguage } from '@/i18n';
 import { lobbyOfferErrorMessage } from '@/i18n/lobbyErrors';
 import {
   AlertDialog,
@@ -29,6 +29,34 @@ export default function IncomingOfferLayer() {
   const isBanned = Boolean(user?.is_banned);
   const { playEnv } = useSound();
 
+  // language (for time-control labels)
+  const [lang, setLang] = useState(getLanguage());
+  useEffect(() => {
+    const onLang = () => {
+      try { setLang(getLanguage()); } catch {}
+    };
+    try { window.addEventListener('shogi_language_changed', onLang); } catch {}
+    return () => {
+      try { window.removeEventListener('shogi_language_changed', onLang); } catch {}
+    };
+  }, []);
+
+  const [code2name, setCode2name] = useState({});
+  useEffect(() => {
+    (async () => {
+      try {
+        const q = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+        const r = await fetch(`/api/lobby/time-controls${q}`, { credentials: 'include' });
+        if (!r.ok) return;
+        const j = await r.json();
+        const arr = Array.isArray(j?.controls) ? j.controls : [];
+        setCode2name(Object.fromEntries(arr.map(x => [x.code, x.name])));
+      } catch {
+        // ignore
+      }
+    })();
+  }, [lang]);
+
   // ---- UI state ----
   const [open, setOpen] = useState(false);
 
@@ -48,6 +76,7 @@ export default function IncomingOfferLayer() {
   const [fromUserKind, setFromUserKind] = useState(null);
   const [gameType, setGameType] = useState('rating');
   const [timeLabel, setTimeLabel] = useState('');
+  const [timeCode, setTimeCode] = useState('');
   const [timeSeconds, setTimeSeconds] = useState(null);
 
   const timerRef = useRef(null);
@@ -66,6 +95,7 @@ export default function IncomingOfferLayer() {
     setFromUserKind(null);
     setGameType('rating');
     setTimeLabel('');
+    setTimeCode('');
     setTimeSeconds(null);
   }, []);
 
@@ -86,8 +116,9 @@ export default function IncomingOfferLayer() {
           setFromRating(Number.isFinite(ratingVal) ? ratingVal : null);
           setFromUserKind(p.from_user_kind || (p.from_user && p.from_user.user_kind) || null);
           setGameType(p.requested_game_type || p.game_type || 'rating');
-          const tl = p.time_name || p.time_label || '';
-          setTimeLabel(tl);
+          setTimeCode(String(p.time_code || ''));
+          // Fallback label (may be in sender language); prefer local mapping by timeCode.
+          setTimeLabel(p.time_label || p.time_name || '');
           const sec = Number(p.time_limit_seconds ?? p.time_seconds ?? NaN);
           setTimeSeconds(Number.isFinite(sec) ? sec : null);
 
@@ -129,26 +160,15 @@ export default function IncomingOfferLayer() {
     };
   }, [reset, user]);
 
-  // カウントが0になったら自動拒否
-  useEffect(() => {
-    if (open && countdown === 0 && !busy) {
-      (async () => {
-        try {
-          setBusy(true);
-          setErr('');
-          await api.post('/lobby/offer/decline');
-        } catch (e) {
-          const data = e?.response?.data || {};
-          const code = data?.error_code || data?.error || data?.code;
-          const fb = data?.message || e?.message || '';
-          setErr(lobbyOfferErrorMessage(code, data, fb, t('ui.components.lobby.incomingofferlayer.k63e51036')));
-        } finally {
-          setBusy(false);
-          reset();
-        }
-      })();
-    }
-  }, [open, countdown, busy, reset]);
+  const resolvedTimeLabel = useMemo(() => {
+    try {
+      if (timeCode && code2name && code2name[timeCode]) return code2name[timeCode];
+    } catch {}
+    return timeLabel || '';
+  }, [timeCode, code2name, timeLabel]);
+
+  // カウントが0になったらサーバー側で自動拒否（クライアントは送信しない）
+  // ※ WSの offer_status(reason=timeout) を受けて閉じる
 
   const accept = useCallback(async () => {
     if (isBanned) {
@@ -204,7 +224,7 @@ export default function IncomingOfferLayer() {
                 ) : null}
               </div>
               <div>{t('ui.components.lobby.incomingofferlayer.kfa7fa786')}: {gameTypeLabel}</div>
-              <div>{t('ui.components.lobby.incomingofferlayer.k21e72ec7')}: {timeLabel || '—'}</div>
+              <div>{t('ui.components.lobby.incomingofferlayer.k21e72ec7')}: {resolvedTimeLabel || '—'}</div>
             </div>
             {fromUserKind === 'guest' && (
               <div className="mt-2 text-xs text-red-500">
@@ -216,8 +236,8 @@ export default function IncomingOfferLayer() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy} onClick={decline}>{t('ui.components.lobby.incomingofferlayer.k589a7d72')}</AlertDialogCancel>
-          <AlertDialogAction disabled={busy || isBanned} onClick={accept}>{t('ui.components.lobby.incomingofferlayer.kdb9d8711')}</AlertDialogAction>
+          <AlertDialogCancel disabled={busy || countdown === 0} onClick={decline}>{t('ui.components.lobby.incomingofferlayer.k589a7d72')}</AlertDialogCancel>
+          <AlertDialogAction disabled={busy || isBanned || countdown === 0} onClick={accept}>{t('ui.components.lobby.incomingofferlayer.kdb9d8711')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

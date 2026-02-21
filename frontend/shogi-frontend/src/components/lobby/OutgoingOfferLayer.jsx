@@ -1,5 +1,5 @@
 // src/components/lobby/OutgoingOfferLayer.jsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -13,12 +13,40 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import ws from '@/services/websocketService';
 import api from '@/services/apiClient';
-import { t } from '@/i18n';
+import { t, getLanguage } from '@/i18n';
 import { lobbyOfferErrorMessage } from '@/i18n/lobbyErrors';
 
 export default function OutgoingOfferLayer() {
   const { user } = useAuth();
   const myId = String(user?._id || user?.id || '');
+
+  // language (for time-control labels)
+  const [lang, setLang] = useState(getLanguage());
+  useEffect(() => {
+    const onLang = () => {
+      try { setLang(getLanguage()); } catch {}
+    };
+    try { window.addEventListener('shogi_language_changed', onLang); } catch {}
+    return () => {
+      try { window.removeEventListener('shogi_language_changed', onLang); } catch {}
+    };
+  }, []);
+
+  const [code2name, setCode2name] = useState({});
+  useEffect(() => {
+    (async () => {
+      try {
+        const q = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+        const r = await fetch(`/api/lobby/time-controls${q}`, { credentials: 'include' });
+        if (!r.ok) return;
+        const j = await r.json();
+        const arr = Array.isArray(j?.controls) ? j.controls : [];
+        setCode2name(Object.fromEntries(arr.map(x => [x.code, x.name])));
+      } catch {
+        // ignore
+      }
+    })();
+  }, [lang]);
 
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState('');
@@ -29,6 +57,7 @@ export default function OutgoingOfferLayer() {
 
   const [toName, setToName] = useState('');
   const [timeLabel, setTimeLabel] = useState('');
+  const [timeCode, setTimeCode] = useState('');
 
   const reset = useCallback(() => {
     setOpen(false);
@@ -36,6 +65,7 @@ export default function OutgoingOfferLayer() {
     setBusy(false);
     setToName('');
     setTimeLabel('');
+    setTimeCode('');
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -49,11 +79,18 @@ export default function OutgoingOfferLayer() {
         const p = payload && payload.detail ? payload.detail : payload;
         if (!p) return;
 
-        // Close immediately if accepted (server sends this to both users; payload may not contain from_user_id)
-        if (p.type === 'offer_status' && p.status === 'accepted') {
-          acceptedRef.current = true;
-          reset();
-          return;
+        // Close immediately on status updates.
+        // NOTE: server-side timeout/accept notifications may omit from_user_id/to_user_id.
+        if (p.type === 'offer_status') {
+          if (p.status === 'accepted') {
+            acceptedRef.current = true;
+            reset();
+            return;
+          }
+          if (p.status === 'declined') {
+            reset();
+            return;
+          }
         }
 
         // I am the sender
@@ -61,6 +98,9 @@ export default function OutgoingOfferLayer() {
         if (!myId || fromId !== myId) return;
 
         if (p.type === 'offer_created') {
+          const tc = String(p.time_code || '');
+          setTimeCode(tc);
+          // Fallback only: label will be resolved locally by code2name.
           setTimeLabel(p.time_name || '');
           // we may not know receiver name; keep blank
           setOpen(true);
@@ -99,22 +139,12 @@ export default function OutgoingOfferLayer() {
     };
   }, [myId, reset]);
 
-  useEffect(() => {
-    if (!open || acceptedRef.current) return;
-    if (countdown <= 0) {
-      // auto-cancel
-      (async () => {
-        try {
-          await api.post('/lobby/offer/cancel');
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.warn('auto-cancel failed', e);
-        } finally {
-          reset();
-        }
-      })();
-    }
-  }, [open, countdown, reset]);
+  const resolvedTimeLabel = useMemo(() => {
+    try {
+      if (timeCode && code2name && code2name[timeCode]) return code2name[timeCode];
+    } catch {}
+    return timeLabel || '';
+  }, [timeCode, code2name, timeLabel]);
 
   const cancel = async () => {
     setBusy(true);
@@ -145,7 +175,7 @@ export default function OutgoingOfferLayer() {
           <AlertDialogTitle>{t('ui.components.lobby.outgoingofferlayer.k7f1bfccb')}</AlertDialogTitle>
           <AlertDialogDescription>
             {t('ui.components.lobby.outgoingofferlayer.k60af4465')}
-            {timeLabel ? <span className="ml-2">{t('ui.components.lobby.outgoingofferlayer.k15a91f8c', { time: timeLabel })}</span> : ''}
+            {resolvedTimeLabel ? <span className="ml-2">{t('ui.components.lobby.outgoingofferlayer.k15a91f8c', { time: resolvedTimeLabel })}</span> : ''}
             {err && <div className="mt-3 text-red-600 text-sm">{err}</div>}
             <div className="mt-3 text-sm">{t('ui.components.lobby.outgoingofferlayer.k3be44cb4', { count: countdown })}</div>
           </AlertDialogDescription>

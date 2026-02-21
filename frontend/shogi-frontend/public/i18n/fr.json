@@ -125,7 +125,7 @@
   "rules.about.title": "À propos",
   "rules.callout.aria": "Avis important",
   "rules.callout.body": "Ce site est un service à but non lucratif pour apprendre et échanger. Nous faisons de notre mieux pour maintenir le service, mais nous ne garantissons pas l’absence de problèmes. Veuillez respecter les règles et rester courtois.",
-  "rules.callout.title": "Important",
+  "rules.callout.title": "",
   "rules.desc": "Cette page résume l’objectif du site, sa politique d’exploitation et ses règles.",
   "rules.documentTitle": "À propos & Règles | Shogi Center 365",
   "rules.h1": "À propos & règles",
@@ -804,7 +804,6 @@
   "verify.status.verified": "E-mail vérifié.",
   "verify.status.verifying": "Vérification…",
   "static.nav.legal": "Conditions & confidentialité",
-
   "static.nav.terms": "Conditions d'utilisation",
   "static.nav.privacy": "Politique de confidentialité"
 }

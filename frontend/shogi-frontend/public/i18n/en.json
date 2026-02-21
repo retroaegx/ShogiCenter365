@@ -101,7 +101,7 @@
   "rules.about.aria": "About this site",
   "rules.about.li1": "This site is <strong>not intended as a replacement for Shogi Club 24</strong>. For ordinary match play, the more established <strong>81道場</strong> and <strong>lishshogi</strong> are recommended.",
   "rules.about.li2": "This site is not for profit. No ads, payments, or donation prompts.",
-  "rules.about.li3": "<strong>Teaching games</strong>, <strong>small tournaments</strong>, study groups, club activities, and other settings with a clear purpose are recommended. (If participants agree on rules beforehand, problems are less likely.)",
+  "rules.about.li3": "<strong>Teaching games</strong>, <strong>small tournaments</strong>, study groups, club activities, and other settings with a clear purpose are recommended.",
   "rules.about.p1": "Created for learning—study, analysis, and teaching games—after Shogi Club 24 shut down. The rules and operation policy are based on the culture and customs of that site.",
   "rules.about.reco.81dojo": "81Dojo",
   "rules.about.reco.aria": "Recommended match services",
@@ -109,7 +109,7 @@
   "rules.about.title": "About",
   "rules.callout.aria": "Important notice",
   "rules.callout.body": "This site is a non-profit service for learning and交流 with others. We do our best to operate it, but we are not responsible for any loss or disadvantage caused by using the site (game results, connection issues, data loss, etc.).",
-  "rules.callout.title": "Important",
+  "rules.callout.title": "",
   "rules.desc": "This page summarizes the site’s purpose, operating policy, and rules.",
   "rules.documentTitle": "About & Rules | Shogi Center 365",
   "rules.h1": "About & Rules",
@@ -173,7 +173,7 @@
   "rules.about.notes.title": "Notes",
   "rules.about.notes.callout.aria": "Notes about operation",
   "rules.about.notes.callout.title": "Operations & data",
-  "rules.about.notes.callout.body": "Service content, rules, and stored data (such as game records) may be changed or removed without notice for operational reasons. This page is the source of truth.",
+  "rules.about.notes.callout.body": "Service content, rules, and stored data (such as game records) may be changed or removed without notice for operational reasons.",
   "rules.about.notes.li1": "The service may be temporarily unavailable due to maintenance.",
   "rules.about.notes.li2": "To prevent abuse, we may restrict access (room lock / ban, etc.) without prior notice if necessary.",
   "rules.rules.basic.li3": "For details not covered here, follow standard shogi rules and common practice.",
@@ -236,7 +236,6 @@
   "distribute.credit.aobannue.code": "AobaNNUE (NNUE evaluation data)\nAuthor: yssaya\nLicense: GPL-3.0\nSource: https://github.com/yssaya/AobaNNUE",
   "distribute.credit.aobannue.note": "For use and redistribution, please comply with the GPL-3.0 license terms.",
   "static.nav.legal": "Terms & Privacy",
-
   "static.nav.terms": "Terms of Service",
   "static.nav.privacy": "Privacy Policy"
 }

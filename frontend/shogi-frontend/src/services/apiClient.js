@@ -1,5 +1,27 @@
 import axios from 'axios'
 
+function normalizeLang(v) {
+  try {
+    const s = String(v || '').trim().toLowerCase();
+    if (!s) return 'en';
+    const base = s.split('-', 1)[0].split('_', 1)[0];
+    const m = (base === 'jp') ? 'ja' : (base === 'cn') ? 'zh' : base;
+    const supported = new Set(['ja', 'en', 'zh', 'fr', 'de', 'pl', 'it', 'pt']);
+    return supported.has(m) ? m : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+function readPreferredLang() {
+  try {
+    const ls = (typeof localStorage !== 'undefined') ? localStorage.getItem('shogi_language') : null;
+    return normalizeLang(ls);
+  } catch {
+    return 'en';
+  }
+}
+
 function readCookie(name) {
   try {
     const list = (typeof document !== 'undefined' && document.cookie) ? document.cookie.split(';') : []
@@ -29,6 +51,12 @@ api.interceptors.request.use((config) => {
     if (token) {
       config.headers = { ...(config.headers || {}), Authorization: `Bearer ${token}` }
     }
+  } catch {}
+
+  // Backend-side i18n (e.g., time control labels in WS payloads)
+  try {
+    const lang = readPreferredLang();
+    config.headers = { ...(config.headers || {}), 'X-Shogi-Lang': lang };
   } catch {}
   return config
 })

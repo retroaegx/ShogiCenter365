@@ -622,6 +622,7 @@ def waiting_start():
 
         set_fields = {
             'waiting': 'seeking',
+            'auto_decline_streak': 0,
             'waiting_info': waiting_info,
             'pending_offer': {},
             'last_seen_at': _now(),
@@ -645,6 +646,7 @@ def waiting_stop():
 
     db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': {
         'waiting': 'lobby',
+        'auto_decline_streak': 0,
         'waiting_info': {},
         'pending_offer': {},
         'last_seen_at': _now(),
@@ -1170,6 +1172,7 @@ def offer_accept():
 
         db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': {
             'waiting': 'playing',
+            'auto_decline_streak': 0,
             'waiting_info': {},
             'pending_offer': {},
             'last_seen_at': _now(),
@@ -1211,6 +1214,7 @@ def offer_decline():
     # reset me (receiver)
     db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': {
         'waiting': 'seeking',
+        'auto_decline_streak': 0,
         'pending_offer': {},
         'last_seen_at': _now(),
     }})
