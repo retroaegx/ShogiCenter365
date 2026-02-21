@@ -88,10 +88,70 @@ npm i -g pnpm@10.4.1
 pnpm -v
 ```
 
-### 0.3 MongoDB / Redis
-- すでにローカルで動いていれば OK
-- 無ければ、後述の Docker 例で起動できます
+### 0.3 MongoDB / Redis（無い場合の入れ方）
+まず存在確認（コマンドの有無 / サービス起動）:
+```bash
+# コマンド確認
+mongod --version || echo "mongod not found"
+redis-server --version || echo "redis-server not found"
 
+# systemd サービス確認（Ubuntu）
+systemctl status mongod --no-pager || true
+systemctl status redis-server --no-pager || true
+```
+
+- すでに MongoDB / Redis が起動していればそのままで OK
+- 無い場合は **A) Ubuntu に直接インストール** か **B) Docker で起動** のどちらかで用意してください
+
+#### A) Ubuntu に直接インストールする（推奨: Redis は apt / MongoDB は公式リポジトリ）
+
+##### Redis（Ubuntu 標準パッケージ）
+```bash
+sudo apt update
+sudo apt install -y redis-server
+sudo systemctl enable --now redis-server
+
+# 動作確認
+redis-cli ping   # -> PONG
+```
+
+##### MongoDB Community Edition（Ubuntu 22.04 / 24.04 の例）
+MongoDB は Ubuntu 標準リポジトリ版が古い/非推奨なことがあるため、**公式リポジトリ**を使うのが安全です。
+
+> 下の例は MongoDB 7.0 系。OS バージョンに合わせて `jammy`（22.04）/`noble`（24.04）を選んでください。
+
+```bash
+# 事前ツール
+sudo apt update
+sudo apt install -y gnupg curl ca-certificates
+
+# 署名鍵を配置
+curl -fsSL https://pgp.mongodb.com/server-7.0.asc   | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+
+# Ubuntu 22.04 (jammy) の例
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse"   | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list >/dev/null
+
+# Ubuntu 24.04 (noble) の場合は上の jammy を noble に変更
+
+sudo apt update
+sudo apt install -y mongodb-org
+sudo systemctl enable --now mongod
+
+# 動作確認
+mongosh --eval 'db.runCommand({ ping: 1 })'
+```
+
+うまく起動しない場合のログ確認:
+```bash
+sudo systemctl status mongod --no-pager
+sudo journalctl -u mongod -n 100 --no-pager
+sudo systemctl status redis-server --no-pager
+sudo journalctl -u redis-server -n 100 --no-pager
+```
+
+#### B) Docker で起動する（ローカルに直接入れたくない場合）
+Docker を使う場合は、後述の「5. MongoDB / Redis（ローカル）」の `docker run` 例だけでもOKです。
+（データ永続化したいなら volume を付けてください）
 
 ---
 
@@ -240,11 +300,21 @@ MongoDB/Redis がローカルで動いていれば最低限は起動します。
 Docker 例（任意）:
 
 ```bash
-# MongoDB
-docker run -d --name shogi-mongo -p 27017:27017 mongo:6
+# MongoDB（永続化 volume 付きの例）
+docker volume create shogi-mongo-data
+docker run -d --name shogi-mongo   -p 27017:27017   -v shogi-mongo-data:/data/db   mongo:6
 
-# Redis
+# Redis（永続化不要ならこのままでOK）
 docker run -d --name shogi-redis -p 6379:6379 redis:7
+```
+
+起動確認:
+```bash
+docker ps --filter name=shogi-mongo --filter name=shogi-redis
+# MongoDB（コンテナ内）
+docker exec -it shogi-mongo mongosh --eval 'db.runCommand({ ping: 1 })'
+# Redis（コンテナ内）
+docker exec -it shogi-redis redis-cli ping   # -> PONG
 ```
 
 ---
