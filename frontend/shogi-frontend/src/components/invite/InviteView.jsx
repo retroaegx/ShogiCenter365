@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { t } from '@/i18n';
+import { t, getLanguage } from '@/i18n';
 import { inviteErrorMessage, lobbyJoinErrorMessage } from '@/i18n/lobbyErrors';
 import { gameErrorMessage } from '@/i18n/gameErrors';
 import api from '@/services/apiClient';
@@ -69,6 +69,7 @@ function idToStr(v) {
 
 export default function InviteView({ token, onClose, onJoinGame }) {
   const { isAuthenticated, user } = useAuth();
+  const lang = getLanguage();
   const isBanned = Boolean(user?.is_banned);
 
   const [info, setInfo] = useState(null);
@@ -101,7 +102,8 @@ export default function InviteView({ token, onClose, onJoinGame }) {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch('/api/lobby/time-controls');
+        const q = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+        const res = await fetch(`/api/lobby/time-controls${q}`, { credentials: 'include' });
         const data = await res.json();
         if (!mounted) return;
         const raw = data?.controls || data?.time_controls || data?.timeControls || [];
@@ -119,7 +121,7 @@ export default function InviteView({ token, onClose, onJoinGame }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [lang]);
 
   async function loadInfo() {
     if (!token) return;

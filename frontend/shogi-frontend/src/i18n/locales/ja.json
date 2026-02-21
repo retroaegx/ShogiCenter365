@@ -205,6 +205,7 @@
   "ui.app.kfadf24db": "保存",
   "ui.app.kfb71a4e0": "接続エラー",
   "ui.app.kfd4a4a68": "着手確認機能",
+  "ui.app.lateCancelSuspicionCancelledWaiting": "放置の疑いにより待機状態が解除されました。",
   "ui.app.moveFromHighlightEnabled": "移動元の強調表示",
   "ui.app.movePieceHighlightEnabled": "移動駒の強調表示",
   "ui.common.google_name": "Google: {name}",
@@ -829,6 +830,5 @@
   "user.error.rating_history_fetch_failed": "履歴取得に失敗しました",
   "user.error.recommended_opponents_fetch_failed": "推奨対戦相手の取得に失敗しました",
   "user.error.unauthorized": "ログインしてください",
-  "user.error.user_not_found": "ユーザーが見つかりません",
-  "ui.app.lateCancelSuspicionCancelledWaiting": "放置の疑いにより待機状態が解除されました。"
+  "user.error.user_not_found": "ユーザーが見つかりません"
 }
