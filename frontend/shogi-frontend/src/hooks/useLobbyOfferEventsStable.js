@@ -83,7 +83,9 @@ export default function useLobbyOfferEventsStable({
         else if (
           evt.type === 'waiting_update' ||
           evt.type === 'lobby_users_update' ||
-          evt.type === 'online_users_update'
+          evt.type === 'online_users_update' ||
+          evt.type === 'auto_decline_limit' ||
+          evt.type === 'late_cancel_limit'
         ) {
           scheduleUsersRefresh(0);
         }

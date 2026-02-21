@@ -21,7 +21,7 @@ export default function InviteLinkModal({ open, url, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] bg-black/35 flex items-start sm:items-center justify-center overflow-y-auto py-6 px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[2000] bg-black/35 flex items-center justify-center overflow-y-auto py-6 px-4" onClick={onClose}>
       <div className="shogi-dialog-surface p-4 sm:p-6 w-[min(28rem,calc(100vw-2rem))] max-h-[calc(100vh-3rem)] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="text-center mb-4">
           <div className="text-lg font-semibold" style={{ fontFamily: 'serif', letterSpacing: '0.10em' }}>{t('ui.components.lobby.invitelinkmodal.k5a7451f8')}</div>

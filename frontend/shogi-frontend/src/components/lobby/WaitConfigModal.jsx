@@ -168,7 +168,7 @@ export default function WaitConfigModal({ open, onClose, onSubmit, initial = {},
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[2000] bg-black/35 flex items-start sm:items-center justify-center overflow-y-auto px-4"
+      className="fixed inset-0 z-[2000] bg-black/35 flex items-center justify-center overflow-y-auto px-4"
       style={{
         paddingTop: "calc(1rem + env(safe-area-inset-top))",
         paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",

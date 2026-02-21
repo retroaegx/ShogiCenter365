@@ -886,13 +886,19 @@ useLayoutEffect(() => {
         if (p && p.type === 'offer_status' && p.status === 'declined') {
           addNotification('info', t("ui.app.k3af45c04"));
         }
+        if (p && p.type === 'auto_decline_limit') {
+          addNotification('warning', t("ui.app.autoDeclineCancelledWaiting"));
+        }
+        if (p && p.type === 'late_cancel_limit') {
+          addNotification('warning', t("ui.app.lateCancelSuspicionCancelledWaiting"));
+        }
       } catch {}
     };
     try { websocketService.on('lobby_offer_update', handler); } catch {}
     return () => {
       try { websocketService.off('lobby_offer_update', handler); } catch {}
       };
-  }, [user?.id]);
+  }, [user?.id, t]);
 
 
   // ゲーム退出

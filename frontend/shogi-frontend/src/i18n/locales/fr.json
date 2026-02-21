@@ -813,5 +813,6 @@
   "ui.components.lobby.lobbyview.gameTypeBadge.free": "Libre",
   "ui.components.lobby.lobbyview.reservedBadge": "Réservé",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Supérieur : second",
-  "ui.app.autoDeclineCancelledWaiting": "Votre attente a été annulée en raison de timeouts répétés."
+  "ui.app.autoDeclineCancelledWaiting": "Votre attente a été annulée en raison de timeouts répétés.",
+  "ui.app.lateCancelSuspicionCancelledWaiting": "Votre état d’attente a été annulé en raison d’une suspicion d’inactivité."
 }

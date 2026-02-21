@@ -829,5 +829,6 @@
   "user.error.rating_history_fetch_failed": "履歴取得に失敗しました",
   "user.error.recommended_opponents_fetch_failed": "推奨対戦相手の取得に失敗しました",
   "user.error.unauthorized": "ログインしてください",
-  "user.error.user_not_found": "ユーザーが見つかりません"
+  "user.error.user_not_found": "ユーザーが見つかりません",
+  "ui.app.lateCancelSuspicionCancelledWaiting": "放置の疑いにより待機状態が解除されました。"
 }

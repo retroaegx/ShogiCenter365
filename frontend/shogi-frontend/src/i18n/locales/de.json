@@ -813,5 +813,6 @@
   "ui.components.lobby.lobbyview.gameTypeBadge.free": "Frei",
   "ui.components.lobby.lobbyview.reservedBadge": "Reserviert",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Oberer: nachziehend",
-  "ui.app.autoDeclineCancelledWaiting": "Dein Warten wurde aufgrund wiederholter Timeouts aufgehoben."
+  "ui.app.autoDeclineCancelledWaiting": "Dein Warten wurde aufgrund wiederholter Timeouts aufgehoben.",
+  "ui.app.lateCancelSuspicionCancelledWaiting": "Dein Wartezustand wurde wegen des Verdachts auf Inaktivität aufgehoben."
 }

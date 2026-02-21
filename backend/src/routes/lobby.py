@@ -623,6 +623,7 @@ def waiting_start():
         set_fields = {
             'waiting': 'seeking',
             'auto_decline_streak': 0,
+            'late_cancel_streak': 0,
             'waiting_info': waiting_info,
             'pending_offer': {},
             'last_seen_at': _now(),
@@ -647,6 +648,7 @@ def waiting_stop():
     db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': {
         'waiting': 'lobby',
         'auto_decline_streak': 0,
+        'late_cancel_streak': 0,
         'waiting_info': {},
         'pending_offer': {},
         'last_seen_at': _now(),
@@ -1173,12 +1175,14 @@ def offer_accept():
         db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': {
             'waiting': 'playing',
             'auto_decline_streak': 0,
+            'late_cancel_streak': 0,
             'waiting_info': {},
             'pending_offer': {},
             'last_seen_at': _now(),
         }})
         db[PRESENCE_COLL].update_one({'user_id': from_uid}, {'$set': {
             'waiting': 'playing',
+            'late_cancel_streak': 0,
             'waiting_info': {},
             'pending_offer': {},
             'last_seen_at': _now(),
@@ -1215,6 +1219,7 @@ def offer_decline():
     db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': {
         'waiting': 'seeking',
         'auto_decline_streak': 0,
+        'late_cancel_streak': 0,
         'pending_offer': {},
         'last_seen_at': _now(),
     }})
@@ -1222,6 +1227,7 @@ def offer_decline():
     if from_uid:
         db[PRESENCE_COLL].update_one({'user_id': from_uid}, {'$set': {
             'waiting': _restore_prev_waiting(db, from_uid, default='lobby'),
+            'late_cancel_streak': 0,
             'pending_offer': {},
             'last_seen_at': _now(),
         }})
@@ -1272,12 +1278,52 @@ def offer_cancel():
     }})
 
     # reset opponent if known
+    late_cancel_limit_hit = False
     if to_uid:
-        db[PRESENCE_COLL].update_one({'user_id': to_uid}, {'$set': {
-            'waiting': 'seeking',
-            'pending_offer': {},
-            'last_seen_at': _now(),
-        }})
+        now_dt = _now()
+        now_ms = int(now_dt.timestamp() * 1000)
+        created_raw = po.get('created_at')
+        try:
+            created_ms = int(created_raw)
+        except Exception:
+            created_ms = 0
+        elapsed_ms = max(0, now_ms - created_ms) if created_ms > 0 else 0
+        is_late_cancel = elapsed_ms >= 4000
+
+        if is_late_cancel:
+            tdoc = db[PRESENCE_COLL].find_one({'user_id': to_uid}, {'late_cancel_streak': 1, 'waiting': 1}) or {}
+            streak = int(tdoc.get('late_cancel_streak') or 0) + 1
+            if streak >= 5:
+                late_cancel_limit_hit = True
+                db[PRESENCE_COLL].update_one({'user_id': to_uid}, {'$set': {
+                    'waiting': 'lobby',
+                    'waiting_info': {},
+                    'pending_offer': {},
+                    'auto_decline_streak': 0,
+                    'late_cancel_streak': 0,
+                    'last_seen_at': now_dt,
+                }})
+                try:
+                    sio = _get_socketio()
+                    if sio:
+                        room = _user_room_name(to_uid)
+                        if room:
+                            sio.emit('lobby_offer_update', {'type': 'late_cancel_limit'}, room=room)
+                except Exception:
+                    pass
+            else:
+                db[PRESENCE_COLL].update_one({'user_id': to_uid}, {'$set': {
+                    'waiting': 'seeking',
+                    'pending_offer': {},
+                    'late_cancel_streak': int(streak),
+                    'last_seen_at': now_dt,
+                }})
+        else:
+            db[PRESENCE_COLL].update_one({'user_id': to_uid}, {'$set': {
+                'waiting': 'seeking',
+                'pending_offer': {},
+                'last_seen_at': now_dt,
+            }})
 
     # notify both as declined/cancelled
     payload = {'type': 'offer_status', 'status': 'declined', 'from_user_id': str(me), 'to_user_id': (str(to_uid) if to_uid else None)}
