@@ -4,6 +4,7 @@ from bson import ObjectId
 from typing import Any, Dict, Optional, List
 from datetime import datetime, timezone
 from src.presence_utils import get_db
+from src.utils.clock import epoch_ms
 
 # --- Mongo duplicate key ---
 try:
@@ -1198,7 +1199,7 @@ class GameService:
             tl_ms = tl * 1000 if tl < 10000 else clamp(tl)
             s_left = clamp(((ts.get('sente') or {}).get('left_ms') or tl_ms) or 0)
             g_left = clamp(((ts.get('gote')  or {}).get('left_ms')  or tl_ms) or 0)
-            now_ms = int(self._now().timestamp() * 1000)
+            now_ms = epoch_ms()
             ts = {
                 'config': {'initial_ms': tl_ms, 'byoyomi_ms': 0, 'increment_ms': 0, 'deferment_ms': 0},
                 'sente':  {'initial_ms': s_left, 'byoyomi_ms': 0, 'deferment_ms': 0},
@@ -1224,7 +1225,7 @@ class GameService:
                     'byoyomi_ms': clamp(((ts.get('gote') or {}).get('byoyomi_ms') if ((ts.get('gote') or {}).get('byoyomi_ms') is not None) else (cfg.get('byoyomi_ms') or 0))),
                     'deferment_ms': clamp(((ts.get('gote') or {}).get('deferment_ms') if ((ts.get('gote') or {}).get('deferment_ms') is not None) else (cfg.get('deferment_ms') or 0))),
                 },
-                'base_at': int(ts.get('base_at') or int(self._now().timestamp() * 1000)),
+                'base_at': int(ts.get('base_at') or epoch_ms()),
                 'current_player': str(ts.get('current_player') or doc.get('current_turn') or 'sente'),
             }
         
@@ -1256,7 +1257,7 @@ class GameService:
         ts = (doc.get('time_state') or {})
         ensured = self._ensure_clock_fields(doc)
         ts = ensured['time_state']
-        now_ms = int(self._now().timestamp() * 1000)
+        now_ms = epoch_ms()
         base_at = int(ts.get('base_at') or now_ms)
         cur = str(doc.get('current_turn') or ts.get('current_player') or 'sente')
         move_hist = list(doc.get('move_history') or [])
@@ -1991,7 +1992,7 @@ class GameService:
 
 
     def as_api_payload(self, doc, me: Optional[str] = None):
-        now_ms = int(self._now().timestamp() * 1000)
+        now_ms = epoch_ms()
         doc = self._ensure_sfen_fields(doc)
 
 
@@ -2230,7 +2231,7 @@ class GameService:
         eff_s, eff_g, spent, over, _bd = self._apply_elapsed(doc)
         ts = doc['time_state']
         cfg = ts.get('config') or {}
-        now_ms = int(self._now().timestamp() * 1000)
+        now_ms = epoch_ms()
         # 再接続前に消費された pending_spent を move の spent に合算し、その後リセット
         try:
             role_for_spent = str(doc.get('current_turn') or (ts.get('current_player') if isinstance(ts, dict) else '') or 'sente')

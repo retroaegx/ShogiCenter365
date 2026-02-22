@@ -8,6 +8,7 @@ Keeps blog-post persistence and excerpt logic out of route functions.
 from __future__ import annotations
 
 import os
+import time
 import re
 import uuid
 from datetime import datetime
@@ -61,7 +62,7 @@ class BlogService:
 
     def default_editor_data(self) -> Dict[str, Any]:
         return {
-            "time": int(datetime.utcnow().timestamp() * 1000),
+            "time": int(time.time() * 1000),
             "blocks": [{"type": "paragraph", "data": {"text": ""}}],
         }
 

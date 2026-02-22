@@ -7,6 +7,7 @@ from bson import ObjectId
 import uuid
 
 from src.utils.maintenance_mode import is_maintenance_enabled, maintenance_message
+from src.utils.clock import epoch_ms
 
 offer_bp = Blueprint('offer', __name__, url_prefix='/api/lobby')
 
@@ -170,7 +171,7 @@ def accept():
         },
         'sente': {'initial_ms': time_limit_ms, 'byoyomi_ms': 0, 'deferment_ms': 0},
         'gote':  {'initial_ms': time_limit_ms, 'byoyomi_ms': 0, 'deferment_ms': 0},
-        'base_at': int(now.timestamp() * 1000),
+        'base_at': epoch_ms(),
         'current_player': 'sente',
     }
 

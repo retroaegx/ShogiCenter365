@@ -2,6 +2,7 @@ from flask import Blueprint, current_app, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from bson import ObjectId, json_util
 from datetime import datetime, timedelta
+from src.utils.clock import epoch_ms, epoch_s
 import logging, json, re
 import secrets
 import asyncio
@@ -799,7 +800,7 @@ def join_by_user():
         return _json({'error': 'invalid_time_code'}, 400)
 
     now = _now()
-    now_ms = int(now.timestamp() * 1000)
+    now_ms = epoch_ms()
 
     # --- transition state (race-safe) ---
     res_opp = db[PRESENCE_COLL].update_one(
@@ -1102,7 +1103,7 @@ def offer_accept():
             },
             'sente': {'initial_ms': init_ms, 'byoyomi_ms': byo_ms, 'deferment_ms': def_ms},
             'gote':  {'initial_ms': init_ms, 'byoyomi_ms': byo_ms, 'deferment_ms': def_ms},
-            'base_at': int(datetime.utcnow().timestamp() * 1000),
+            'base_at': epoch_ms(),
             'current_player': 'sente',
         }
         # Canonical: store only SFEN (no board arrays / no captured arrays).
@@ -1281,7 +1282,7 @@ def offer_cancel():
     late_cancel_limit_hit = False
     if to_uid:
         now_dt = _now()
-        now_ms = int(now_dt.timestamp() * 1000)
+        now_ms = epoch_ms()
         created_raw = po.get('created_at')
         try:
             created_ms = int(created_raw)
@@ -1370,7 +1371,7 @@ def touch():
     try:
         claims = get_jwt()
         exp_ts = int(claims.get('exp', 0))
-        now_ts = int(datetime.utcnow().timestamp())
+        now_ts = epoch_s()
         remain = exp_ts - now_ts
     except Exception:
         remain = -1  # 失敗したら強制的に -1 扱い（更新しない）

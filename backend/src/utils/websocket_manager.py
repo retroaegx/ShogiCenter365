@@ -8,6 +8,7 @@ from flask import request, current_app
 from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
 from flask_jwt_extended import decode_token
 from src.config import TIME_CONTROLS
+from src.utils.clock import epoch_ms
 
 logger = logging.getLogger(__name__)
 
@@ -856,9 +857,9 @@ class WebSocketManager:
                                                             doc0 = None
                                                     if doc0 and str(doc0.get('status')) in ('active','ongoing','in_progress','started','pause'):
                                                         now = datetime.utcnow()
-                                                        now_ms = int(now.timestamp() * 1000)
+                                                        now_ms = epoch_ms()
                                                         ts0 = dict(doc0.get('time_state') or {})
-                                                        ts0['base_at'] = int(datetime.utcnow().timestamp() * 1000)
+                                                        ts0['base_at'] = now_ms
                                                         gm.update_one({'_id': gid}, {'$set': {'time_state.base_at': now_ms, 'updated_at': datetime.utcnow()}})
                                             except Exception:
                                                 logger.warning('base_at rebase on reconnect failed', exc_info=True)
@@ -919,7 +920,7 @@ class WebSocketManager:
                                                                 _presence_join_game_player(sid, str(gid), role)
                                                         except Exception:
                                                             pass
-                                                        ts = dict(doc.get('time_state') or {}); now_ms = int(datetime.utcnow().timestamp() * 1000)
+                                                        ts = dict(doc.get('time_state') or {}); now_ms = epoch_ms()
                                                         try:
                                                             if role:
                                                                 dslot = (ts.setdefault('disconnect', {}).setdefault(role, {}))
@@ -1080,7 +1081,7 @@ class WebSocketManager:
                     }
                     cursor = gm.find(q).sort([('updated_at', -1)]).limit(8)
 
-                    now_ms = int(datetime.utcnow().timestamp() * 1000)
+                    now_ms = epoch_ms()
                     for doc in cursor:
                         try:
                             ts = dict(doc.get('time_state') or {})
@@ -2340,7 +2341,7 @@ class WebSocketManager:
                             role = 'sente' if s_uid and s_uid == str(user_id) else ('gote' if g_uid and g_uid == str(user_id) else None)
                             ts = dict(doc.get('time_state') or {})
                             cur = str(doc.get('current_turn') or ts.get('current_player') or 'sente')
-                            now_ms = int(datetime.utcnow().timestamp() * 1000)
+                            now_ms = epoch_ms()
                             # system chat: disconnect notice (players only, non-finished)
                             try:
                                 if role and str(doc.get('status')) != 'finished':

@@ -7,6 +7,7 @@ import time
 import json
 import logging
 from datetime import datetime
+from src.utils.clock import dt_to_epoch_ms_utc
 
 try:
     from bson import ObjectId
@@ -53,7 +54,7 @@ def _jsonable(x: Any):
             return str(x)
         if isinstance(x, datetime):
             # stable enough; we don't include it in outgoing payloads
-            return int(x.timestamp() * 1000)
+            return dt_to_epoch_ms_utc(x)
         if isinstance(x, dict):
             return {str(k): _jsonable(v) for k, v in x.items()}
         if isinstance(x, (list, tuple)):

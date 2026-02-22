@@ -1,4 +1,7 @@
-# Python dependencies (backend + engine_server + join_computer)
+# Canonical Python dependencies (backend + engine_server + join_computer)
+#
+# NOTE: The project root requirements.txt is the source of truth.
+# backend/requirements.txt delegates to this file for compatibility.
 #
 # Install:
 #   python -m pip install -r requirements.txt

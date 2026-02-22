@@ -343,6 +343,19 @@ try:
     app.mongo_db = db
     app.config["MONGO_DB"] = db
 
+    # Ensure presence TTL index exists in every deployment path (idempotent).
+    try:
+        from src.presence_utils import ensure_online_ttl
+        with app.app_context():
+            ensure_online_ttl()
+        try:
+            ttl_info = db['online_users'].index_information().get('ttl_last_seen_at') or {}
+            app.logger.info("online_users TTL ensured: %s", ttl_info)
+        except Exception:
+            app.logger.info("online_users TTL ensured")
+    except Exception as e:
+        app.logger.warning("online_users TTL ensure failed: %s", e, exc_info=True)
+
     # Moderation (warning words / user flags)
     try:
         from src.services.moderation_service import ModerationService

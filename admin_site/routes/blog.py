@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -142,7 +143,7 @@ def register(app) -> None:
         if not initial_data:
             body = post.get("body") or ""
             initial_data = {
-                "time": int(datetime.utcnow().timestamp() * 1000),
+                "time": int(time.time() * 1000),
                 "blocks": [{"type": "paragraph", "data": {"text": strip_tags(body).replace("\n", "<br>")}}],
             }
 
