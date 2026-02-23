@@ -831,4 +831,6 @@
   "user.error.recommended_opponents_fetch_failed": "推奨対戦相手の取得に失敗しました",
   "user.error.unauthorized": "ログインしてください",
   "user.error.user_not_found": "ユーザーが見つかりません"
+,
+  "lobby.offer.notice.rating_gap_no_change": "レーティング差が{limit}以上のため、この対局ではレーティングは変動しません"
 }

@@ -457,8 +457,8 @@ useEffect(() => {
     }
   }, [myRating]);
 
-  // 挑戦制限：自分が相手より400以上高い（相手が下位）場合は、R対局では挑戦できない
-  const violatesRatingGap = useCallback((target) => {
+  // R対局での「レーティング変動なし」条件（差400以上）
+  const isRatingGapNoChange = useCallback((target) => {
     try {
       if (!target) return false;
       const wi = target.waiting_info || {};
@@ -467,7 +467,7 @@ useEffect(() => {
       if (myRating === null) return false;
       const oppR = Number(target.rating ?? target.rate ?? wi.rating);
       if (!Number.isFinite(oppR)) return false;
-      return (myRating - oppR) >= 400;
+      return Math.abs(myRating - oppR) >= 400;
     } catch {
       return false;
     }
@@ -689,12 +689,6 @@ useEffect(() => {
       }
       return;
     }
-    // 挑戦制限：自分が相手より400以上高い（相手が下位）場合は申請できない（UIガード）
-    if (violatesRatingGap(target)) {
-      setErr(t("ui.components.lobby.lobbyview.kae18e4f6"));
-      return;
-    }
-
     try {
       // 申請モーダルを開く（POSTはOfferModalで実行）
       setOfferTarget(target);
@@ -928,8 +922,8 @@ useEffect(() => {
                 && !isBanned
                 && (myWaiting === 'lobby' || myWaiting === '' || myWaiting === 'seeking');
               const inRange = withinTargetRange(usr);
-              const gapTooLarge = violatesRatingGap(usr);
-              const canRequest = requestableBase && inRange && !gapTooLarge;
+              const gapNoChange = isRatingGapNoChange(usr);
+              const canRequest = requestableBase && inRange;
 
               const dotCls = (usr.waiting === 'seeking')
                 ? 'bg-emerald-400 border-emerald-600'
@@ -959,6 +953,7 @@ useEffect(() => {
                   className="px-3 py-1.5 text-[11px] font-medium bg-amber-800 text-amber-100 rounded hover:bg-amber-900 active:scale-95 transition-all shadow-md"
                   style={{ fontFamily: 'serif' }}
                   onClick={() => requestMatch(usr)}
+                  title={gapNoChange ? t('lobby.offer.notice.rating_gap_no_change', { limit: 400 }) : undefined}
                   disabled={usr.waiting !== 'seeking' || idToStr(usr.user_id) === idToStr(myId) || !(myWaiting === 'lobby' || myWaiting === '' || myWaiting === 'seeking')}
                 >
                   {t("ui.components.lobby.lobbyview.k221056a0")}
@@ -966,14 +961,6 @@ useEffect(() => {
               ) : (requestableBase && !inRange) ? (
                 <span className="text-[11px] px-2 py-1 rounded bg-stone-100 text-stone-500 border border-stone-300" style={{ fontFamily: 'serif' }}>
                   {t("ui.components.lobby.lobbyview.k8387056b")}
-                </span>
-              ) : (requestableBase && inRange && gapTooLarge) ? (
-                <span
-                  className="text-[11px] px-2 py-1 rounded bg-stone-100 text-stone-500 border border-stone-300"
-                  style={{ fontFamily: 'serif' }}
-                  title={t("ui.components.lobby.lobbyview.kae18e4f6")}
-                >
-                  {t("ui.components.lobby.lobbyview.kb391a00c")}
                 </span>
               ) : ((usr.waiting === 'playing' || usr.waiting === 'review') && (myWaiting === 'lobby' || myWaiting === '')) ? (
                 <button
@@ -1212,7 +1199,16 @@ useEffect(() => {
                   if (!info) return timeControls?.[0]?.code;
                   const byName = info.time_name ? name2code[info.time_name] : undefined; return info.time_code ?? byName ?? timeControls?.[0]?.code;
                 })()}
-                ratingNote={(offerTarget?.user_kind === "guest" || offerTarget?.is_guest) ? t("ui.components.lobby.lobbyview.k47bff6be") : ""}
+                ratingNote={( () => {
+                  const notes = [];
+                  if (offerTarget?.user_kind === "guest" || offerTarget?.is_guest) {
+                    notes.push(t("ui.components.lobby.lobbyview.k47bff6be"));
+                  }
+                  if (isRatingGapNoChange(offerTarget)) {
+                    notes.push(t('lobby.offer.notice.rating_gap_no_change', { limit: 400 }));
+                  }
+                  return notes.filter(Boolean).join('\n');
+                })()}
                 conditionText={( () => {
                   const wi = (offerTarget && typeof offerTarget === 'object') ? (offerTarget.waiting_info || offerTarget.waitingInfo || {}) : {};
                   const gtRaw = (wi && typeof wi === 'object') ? (wi.game_type ?? wi.gameType) : undefined;

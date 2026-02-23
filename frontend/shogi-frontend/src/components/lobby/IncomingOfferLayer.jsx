@@ -28,6 +28,10 @@ export default function IncomingOfferLayer() {
   const { user } = useAuth();
   const isBanned = Boolean(user?.is_banned);
   const { playEnv } = useSound();
+  const myRating = useMemo(() => {
+    const n = Number(user?.rating ?? user?.rate);
+    return Number.isFinite(n) ? n : null;
+  }, [user]);
 
   // language (for time-control labels)
   const [lang, setLang] = useState(getLanguage());
@@ -209,6 +213,15 @@ export default function IncomingOfferLayer() {
   }, [reset]);
 
   const gameTypeLabel = gameType === 'rating' ? t('ui.components.lobby.incomingofferlayer.k01587212') : t('ui.components.lobby.incomingofferlayer.k036a9f3c');
+  const ratingGapNoChange = useMemo(() => {
+    try {
+      if (gameType !== 'rating') return false;
+      if (myRating == null || fromRating == null) return false;
+      return Math.abs(Number(myRating) - Number(fromRating)) >= 400;
+    } catch {
+      return false;
+    }
+  }, [gameType, myRating, fromRating]);
 
   return (
     <AlertDialog open={open} onOpenChange={(v) => { if (!v) reset(); }}>
@@ -229,6 +242,11 @@ export default function IncomingOfferLayer() {
             {fromUserKind === 'guest' && (
               <div className="mt-2 text-xs text-red-500">
                 {t('ui.components.lobby.incomingofferlayer.k47bff6be')}
+              </div>
+            )}
+            {ratingGapNoChange && (
+              <div className="mt-2 text-xs text-red-500">
+                {t('lobby.offer.notice.rating_gap_no_change', { limit: 400 })}
               </div>
             )}
             {err && <div className="mt-3 text-red-600 text-sm">{err}</div>}

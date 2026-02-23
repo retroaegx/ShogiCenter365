@@ -92,6 +92,22 @@ export default function InviteView({ token, onClose, onJoinGame }) {
   const conditionText = useMemo(() => (conditionTags.length ? conditionTags.join('・') : ''), [conditionTags]);
 
   const myId = useMemo(() => idToStr(user?.id || user?.user_id || user?._id), [user]);
+  const myRating = useMemo(() => {
+    const n = Number(user?.rating ?? user?.rate);
+    return Number.isFinite(n) ? n : null;
+  }, [user]);
+  const inviteRatingGapNoChange = useMemo(() => {
+    try {
+      const gt = String(waitingInfo?.game_type ?? waitingInfo?.gameType ?? 'rating').toLowerCase();
+      if (gt !== 'rating') return false;
+      if (myRating == null) return false;
+      const opp = Number(inviter?.rating ?? inviter?.rate);
+      if (!Number.isFinite(opp)) return false;
+      return Math.abs(myRating - opp) >= 400;
+    } catch {
+      return false;
+    }
+  }, [waitingInfo, myRating, inviter]);
 
   const isSelf = useMemo(() => {
     const inv = idToStr(inviter?.user_id);
@@ -338,7 +354,12 @@ export default function InviteView({ token, onClose, onJoinGame }) {
           options={timeControls}
           defaultCode={timeControls?.[0]?.code}
           title={t("ui.components.invite.inviteview.kcedb6d49")}
-          ratingNote={inviterIsGuest ? t('ui.components.invite.inviteview.k47bff6be') : ''}
+          ratingNote={( () => {
+            const notes = [];
+            if (inviterIsGuest) notes.push(t('ui.components.invite.inviteview.k47bff6be'));
+            if (inviteRatingGapNoChange) notes.push(t('lobby.offer.notice.rating_gap_no_change', { limit: 400 }));
+            return notes.filter(Boolean).join('\n');
+          })()}
           conditionText={conditionText}
           onClose={() => setOfferOpen(false)}
           onSubmit={doOffer}

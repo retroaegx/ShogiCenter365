@@ -815,4 +815,6 @@
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Superiore: secondo",
   "ui.app.autoDeclineCancelledWaiting": "L'attesa è stata annullata a causa di timeout ripetuti.",
   "ui.app.lateCancelSuspicionCancelledWaiting": "Lo stato di attesa è stato annullato per sospetta inattività."
+,
+  "lobby.offer.notice.rating_gap_no_change": "Poiché la differenza di rating è pari o superiore a {limit}, il rating non cambierà in questa partita."
 }

@@ -2,7 +2,6 @@ from flask import Blueprint, current_app, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from bson import ObjectId, json_util
 from datetime import datetime, timedelta
-from src.utils.clock import epoch_ms, epoch_s
 import logging, json, re
 import secrets
 import asyncio
@@ -733,29 +732,10 @@ def join_by_user():
     if game_type not in ('rating', 'free'):
         return _json({'error': 'opponent_waiting_info_invalid', 'field': 'game_type'}, 409)
 
-    # --- challenge restriction (Shogi Club 24 rule) ---
-    # Rated games only: cannot challenge someone >=400 below you.
+    # --- rating gap >=400 is allowed (rating update is skipped later in result processing) ---
     receiver_rating = _get_user_rating(db, opp)
     if receiver_rating is None:
         receiver_rating = _parse_int(wi.get('rating'), default=None)
-    if game_type == 'rating' and receiver_rating is not None and (int(sender_rating) - int(receiver_rating)) >= 400:
-        try:
-            _emit_offer_update({
-                'type': 'offer_status',
-                'status': 'declined',
-                'reason': 'rating_gap_too_large',
-                'limit': 400,
-                'your_rating': int(sender_rating),
-                'opponent_rating': int(receiver_rating),
-            }, from_user_id=me)
-        except Exception:
-            pass
-        return _json({
-            'error': 'rating_gap_too_large',
-            'limit': 400,
-            'your_rating': int(sender_rating),
-            'opponent_rating': int(receiver_rating),
-        }, 409)
 
     # --- rating range check (receiver side) ---
     rr = _normalize_rating_range(wi.get('rating_range'))
@@ -800,7 +780,7 @@ def join_by_user():
         return _json({'error': 'invalid_time_code'}, 400)
 
     now = _now()
-    now_ms = epoch_ms()
+    now_ms = int(now.timestamp() * 1000)
 
     # --- transition state (race-safe) ---
     res_opp = db[PRESENCE_COLL].update_one(
@@ -985,48 +965,7 @@ def offer_accept():
         except Exception:
             pass
 
-        # --- re-check challenge restriction (defense in depth) ---
-        try:
-            if game_type == 'rating':
-                recv_rating = _get_user_rating(db, me)
-                if recv_rating is None:
-                    recv_rating = _parse_int(wi.get('rating'), default=None)
-                sender_rating2 = _get_user_rating(db, from_uid)
-                if sender_rating2 is None:
-                    sender_rating2 = None
-                if recv_rating is not None and sender_rating2 is not None and (int(sender_rating2) - int(recv_rating)) >= 400:
-                    now2 = _now()
-                    db[PRESENCE_COLL].update_one({'user_id': me}, {'$set': {
-                        'waiting': 'seeking',
-                        'pending_offer': {},
-                        'last_seen_at': now2,
-                    }})
-                    db[PRESENCE_COLL].update_one({'user_id': from_uid}, {'$set': {
-                        'waiting': _restore_prev_waiting(db, from_uid, default='lobby'),
-                        'pending_offer': {},
-                        'last_seen_at': now2,
-                    }})
-                    payload = {
-                        'type': 'offer_status',
-                        'status': 'declined',
-                        'reason': 'rating_gap_too_large',
-                        'limit': 400,
-                        'from_user_id': str(from_uid),
-                        'to_user_id': str(me),
-                    }
-                    try:
-                        _emit_offer_update(payload, to_user_id=me, from_user_id=from_uid)
-                    except Exception:
-                        pass
-                    emit_online_users_diff(db, changed_user_ids=[me, from_uid])
-                    return _json({
-                        'error': 'rating_gap_too_large',
-                        'limit': 400,
-                        'your_rating': int(sender_rating2),
-                        'opponent_rating': int(recv_rating),
-                    }, 409)
-        except Exception:
-            pass
+        # rating gap >=400 is allowed. rating calculation skips updates later.
 
         import random
         from_doc = db[PRESENCE_COLL].find_one({'user_id': from_uid}) or {}
@@ -1103,7 +1042,7 @@ def offer_accept():
             },
             'sente': {'initial_ms': init_ms, 'byoyomi_ms': byo_ms, 'deferment_ms': def_ms},
             'gote':  {'initial_ms': init_ms, 'byoyomi_ms': byo_ms, 'deferment_ms': def_ms},
-            'base_at': epoch_ms(),
+            'base_at': int(datetime.utcnow().timestamp() * 1000),
             'current_player': 'sente',
         }
         # Canonical: store only SFEN (no board arrays / no captured arrays).
@@ -1282,7 +1221,7 @@ def offer_cancel():
     late_cancel_limit_hit = False
     if to_uid:
         now_dt = _now()
-        now_ms = epoch_ms()
+        now_ms = int(now_dt.timestamp() * 1000)
         created_raw = po.get('created_at')
         try:
             created_ms = int(created_raw)
@@ -1371,7 +1310,7 @@ def touch():
     try:
         claims = get_jwt()
         exp_ts = int(claims.get('exp', 0))
-        now_ts = epoch_s()
+        now_ts = int(datetime.utcnow().timestamp())
         remain = exp_ts - now_ts
     except Exception:
         remain = -1  # 失敗したら強制的に -1 扱い（更新しない）

@@ -103,7 +103,7 @@ export default function OfferModal({
         </div>
 
         {ratingNote && (
-          <div className="mb-2 text-xs text-red-500">
+          <div className="mb-2 text-xs text-red-500 whitespace-pre-line">
             {ratingNote}
           </div>
         )}

@@ -815,4 +815,6 @@
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Supérieur : second",
   "ui.app.autoDeclineCancelledWaiting": "Votre attente a été annulée en raison de timeouts répétés.",
   "ui.app.lateCancelSuspicionCancelledWaiting": "Votre état d’attente a été annulé en raison d’une suspicion d’inactivité."
+,
+  "lobby.offer.notice.rating_gap_no_change": "Comme l’écart de classement est de {limit} ou plus, le classement ne changera pas pour cette partie."
 }

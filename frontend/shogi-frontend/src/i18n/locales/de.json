@@ -815,4 +815,6 @@
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Oberer: nachziehend",
   "ui.app.autoDeclineCancelledWaiting": "Dein Warten wurde aufgrund wiederholter Timeouts aufgehoben.",
   "ui.app.lateCancelSuspicionCancelledWaiting": "Dein Wartezustand wurde wegen des Verdachts auf Inaktivität aufgehoben."
+,
+  "lobby.offer.notice.rating_gap_no_change": "Da der Wertungsunterschied {limit} oder mehr beträgt, ändert sich die Wertung in dieser Partie nicht."
 }
