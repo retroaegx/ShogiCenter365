@@ -856,7 +856,7 @@ const GameView = ({
   const exitSoundPlayedRef = useRef(false);
 
   const [gameState, setGameState] = useState(null);
-  const [coordVisibleInner, setCoordVisibleInner] = useState(true);
+  const [coordVisibleInner, setCoordVisibleInner] = useState(false);
   const coordVisible = (typeof coordVisibleProp === 'boolean') ? coordVisibleProp : coordVisibleInner;
   const setCoordVisible = onChangeCoordVisible || setCoordVisibleInner;
 
