@@ -83,6 +83,7 @@
   "lobby.offer.error.rating_gap_too_large": "レーティング差が400以上の下位者には挑戦できません",
   "lobby.offer.error.rating_out_of_range": "相手が指定したレーティング範囲外です",
   "lobby.offer.error.rating_out_of_range_range": "相手が指定したレーティング範囲外です（{mn}〜{mx}）",
+  "lobby.offer.notice.rating_gap_no_change": "レーティング差が{limit}以上のため、この対局ではレーティングは変動しません",
   "my-0.5": "",
   "shogi.move.error.cannot_drop_to": "その位置には駒を打てません",
   "shogi.move.error.cannot_move_to": "その位置には移動できません",
@@ -831,6 +832,4 @@
   "user.error.recommended_opponents_fetch_failed": "推奨対戦相手の取得に失敗しました",
   "user.error.unauthorized": "ログインしてください",
   "user.error.user_not_found": "ユーザーが見つかりません"
-,
-  "lobby.offer.notice.rating_gap_no_change": "レーティング差が{limit}以上のため、この対局ではレーティングは変動しません"
 }
