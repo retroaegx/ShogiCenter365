@@ -379,7 +379,7 @@ useLayoutEffect(() => {
       if (v === '0') return false;
       if (v === '1') return true;
     } catch {}
-    return true;
+    return false;
   }); // 対局画面での main-shell 横幅
 
   const [moveConfirmEnabled, setMoveConfirmEnabled] = useState(() => {
@@ -591,7 +591,7 @@ useLayoutEffect(() => {
     if (!isAuthenticated || !user) return;
 
     const s = user.settings || {};
-    const desiredCv = (typeof s.coordVisible === 'boolean') ? s.coordVisible : true;
+    const desiredCv = (typeof s.coordVisible === 'boolean') ? s.coordVisible : false;
     const desiredSwm = (typeof s.shellWidthMode === 'string' && (s.shellWidthMode === 'wide' || s.shellWidthMode === 'normal'))
       ? s.shellWidthMode
       : 'normal';
