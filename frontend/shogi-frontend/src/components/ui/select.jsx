@@ -80,7 +80,7 @@ function SelectContent({ className, children, position = "popper", ...props }) {
         position={position}
         className={cn(
           // ここが「背景透過」原因。Dialog上でも確実に不透明にする。
-          "z-[1100] min-w-[8rem] overflow-hidden rounded-md border shadow-md",
+          "z-[3000] min-w-[8rem] overflow-hidden rounded-md border shadow-md",
           "!bg-white !opacity-100 !backdrop-blur-none text-popover-foreground",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
