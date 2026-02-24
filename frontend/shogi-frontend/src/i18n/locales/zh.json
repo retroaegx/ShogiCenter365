@@ -814,7 +814,7 @@
   "ui.components.lobby.lobbyview.reservedBadge": "有预约",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "上手后手",
   "ui.app.autoDeclineCancelledWaiting": "由于连续自动拒绝，已解除待机状态。",
-  "ui.app.lateCancelSuspicionCancelledWaiting": "因疑似放置，等待状态已解除。"
-,
-  "lobby.offer.notice.rating_gap_no_change": "由于等级分差达到 {limit} 或以上，这盘对局不会发生等级分变动。"
+  "ui.app.lateCancelSuspicionCancelledWaiting": "因疑似放置，等待状态已解除。",
+  "lobby.offer.notice.rating_gap_no_change": "由于等级分差达到 {limit} 或以上，这盘对局不会发生等级分变动。",
+  "ui.components.auth.registerform.mail_allow_notice": "可能收不到确认邮件。请允许接收来自 sc365.sakura.ne.jp 的邮件。"
 }

@@ -814,7 +814,7 @@
   "ui.components.lobby.lobbyview.reservedBadge": "Zarezerwowane",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Górny: drugi",
   "ui.app.autoDeclineCancelledWaiting": "Oczekiwanie zostało anulowane z powodu kolejnych przekroczeń czasu.",
-  "ui.app.lateCancelSuspicionCancelledWaiting": "Twój stan oczekiwania został anulowany z powodu podejrzenia braku aktywności."
-,
-  "lobby.offer.notice.rating_gap_no_change": "Ponieważ różnica rankingu wynosi {limit} lub więcej, ranking nie zmieni się po tej partii."
+  "ui.app.lateCancelSuspicionCancelledWaiting": "Twój stan oczekiwania został anulowany z powodu podejrzenia braku aktywności.",
+  "lobby.offer.notice.rating_gap_no_change": "Ponieważ różnica rankingu wynosi {limit} lub więcej, ranking nie zmieni się po tej partii.",
+  "ui.components.auth.registerform.mail_allow_notice": "E-mail potwierdzający może nie dotrzeć. Zezwól na odbiór wiadomości z domeny sc365.sakura.ne.jp."
 }

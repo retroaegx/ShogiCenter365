@@ -279,6 +279,7 @@ const RegisterForm = ({
             className="w-full shogi-input"
             autoComplete="email"
           />
+          <p className="text-xs text-muted-foreground">{t("ui.components.auth.registerform.mail_allow_notice")}</p>
         </div>
 
         <div className="space-y-2">

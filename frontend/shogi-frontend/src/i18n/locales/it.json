@@ -814,7 +814,7 @@
   "ui.components.lobby.lobbyview.reservedBadge": "Riservato",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Superiore: secondo",
   "ui.app.autoDeclineCancelledWaiting": "L'attesa è stata annullata a causa di timeout ripetuti.",
-  "ui.app.lateCancelSuspicionCancelledWaiting": "Lo stato di attesa è stato annullato per sospetta inattività."
-,
-  "lobby.offer.notice.rating_gap_no_change": "Poiché la differenza di rating è pari o superiore a {limit}, il rating non cambierà in questa partita."
+  "ui.app.lateCancelSuspicionCancelledWaiting": "Lo stato di attesa è stato annullato per sospetta inattività.",
+  "lobby.offer.notice.rating_gap_no_change": "Poiché la differenza di rating è pari o superiore a {limit}, il rating non cambierà in questa partita.",
+  "ui.components.auth.registerform.mail_allow_notice": "Potresti non ricevere l’e-mail di conferma. Consenti la ricezione delle e-mail da sc365.sakura.ne.jp."
 }

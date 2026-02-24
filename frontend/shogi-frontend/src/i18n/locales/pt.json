@@ -814,7 +814,7 @@
   "ui.components.lobby.lobbyview.reservedBadge": "Reservado",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Superior: segundo",
   "ui.app.autoDeclineCancelledWaiting": "Sua espera foi cancelada devido a timeouts consecutivos.",
-  "ui.app.lateCancelSuspicionCancelledWaiting": "Seu estado de espera foi removido por suspeita de inatividade."
-,
-  "lobby.offer.notice.rating_gap_no_change": "Como a diferença de rating é de {limit} ou mais, o rating não mudará nesta partida."
+  "ui.app.lateCancelSuspicionCancelledWaiting": "Seu estado de espera foi removido por suspeita de inatividade.",
+  "lobby.offer.notice.rating_gap_no_change": "Como a diferença de rating é de {limit} ou mais, o rating não mudará nesta partida.",
+  "ui.components.auth.registerform.mail_allow_notice": "Você pode não receber o e-mail de confirmação. Autorize o recebimento de e-mails de sc365.sakura.ne.jp."
 }

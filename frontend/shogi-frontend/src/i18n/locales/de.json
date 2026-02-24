@@ -814,7 +814,7 @@
   "ui.components.lobby.lobbyview.reservedBadge": "Reserviert",
   "ui.components.lobby.lobbyview.handicapTurn.upperGote": "Oberer: nachziehend",
   "ui.app.autoDeclineCancelledWaiting": "Dein Warten wurde aufgrund wiederholter Timeouts aufgehoben.",
-  "ui.app.lateCancelSuspicionCancelledWaiting": "Dein Wartezustand wurde wegen des Verdachts auf Inaktivität aufgehoben."
-,
-  "lobby.offer.notice.rating_gap_no_change": "Da der Wertungsunterschied {limit} oder mehr beträgt, ändert sich die Wertung in dieser Partie nicht."
+  "ui.app.lateCancelSuspicionCancelledWaiting": "Dein Wartezustand wurde wegen des Verdachts auf Inaktivität aufgehoben.",
+  "lobby.offer.notice.rating_gap_no_change": "Da der Wertungsunterschied {limit} oder mehr beträgt, ändert sich die Wertung in dieser Partie nicht.",
+  "ui.components.auth.registerform.mail_allow_notice": "Die Bestätigungs-E-Mail kommt möglicherweise nicht an. Bitte erlaube E-Mails von sc365.sakura.ne.jp."
 }
