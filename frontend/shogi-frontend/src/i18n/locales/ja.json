@@ -302,6 +302,7 @@
   "ui.components.auth.registerform.kd8dc593b": "パスワードを再入力",
   "ui.components.auth.registerform.ked1cb24d": "初期レーティング",
   "ui.components.auth.registerform.kf0922003": "Google登録に失敗しました",
+  "ui.components.auth.registerform.mail_allow_notice": "確認メールが届かない場合があります。sc365.sakura.ne.jp からのメールを受信許可してください。",
   "ui.components.game.analysispvreplayoverlay.k0eafd61f": "開始局面",
   "ui.components.game.analysispvreplayoverlay.k21941967": "一時停止",
   "ui.components.game.analysispvreplayoverlay.k225550ae": "進む",
@@ -831,6 +832,5 @@
   "user.error.rating_history_fetch_failed": "履歴取得に失敗しました",
   "user.error.recommended_opponents_fetch_failed": "推奨対戦相手の取得に失敗しました",
   "user.error.unauthorized": "ログインしてください",
-  "user.error.user_not_found": "ユーザーが見つかりません",
-  "ui.components.auth.registerform.mail_allow_notice": "確認メールが届かない場合があります。sc365.sakura.ne.jp からのメールを受信許可してください。"
+  "user.error.user_not_found": "ユーザーが見つかりません"
 }
